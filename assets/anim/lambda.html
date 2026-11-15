@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>λ selects how many directions to keep</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inria+Sans:ital,wght@0,300;0,400;0,700;1,400&family=Inria+Serif:wght@400;700&display=swap">
+<script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embedded');</script>
+<style>
+:root { color-scheme: light; --ink:#1d1d1b; --muted:#5e5955; --accent:#c42b10; --soft:#fcefe9; --border:#e7e2dc; --warm:#3d5a73; --faint:#ddd7d0; }
+* { box-sizing:border-box; }
+body { margin:0; background:#fff; color:var(--ink); font:15px/1.55 "Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+main { max-width:1160px; padding:44px 24px; margin:auto; }
+.eyebrow { margin:0 0 6px; color:var(--muted); font-size:11px; font-weight:650; letter-spacing:.14em; text-transform:uppercase; }
+h1 { margin:0; font:600 32px/1.2 "Inria Serif",Georgia,serif; letter-spacing:-.025em; }
+.intro { margin:10px 0 25px; color:var(--muted); }
+.card { background:white; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.steps { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--border); }
+button { font:inherit; cursor:pointer; }
+.step { padding:15px 14px; border:0; border-right:1px solid var(--border); background:white; color:var(--muted); text-align:left; font-size:12px; transition:background .2s; }
+.step:last-child { border-right:0; }
+.step span { display:block; font-size:10px; letter-spacing:.08em; margin-bottom:3px; }
+.step[aria-current="step"] { background:var(--soft); color:var(--ink); box-shadow:inset 0 -3px var(--accent); }
+.step:hover { background:#fdf6f2; }
+:focus-visible { outline:3px solid var(--warm); outline-offset:-3px; }
+.diagram-scroll { overflow-x:auto; padding:4px 14px 0; }
+svg { display:block; width:100%; height:auto; }
+svg text { font-family:"Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:var(--ink); }
+svg .m { font-family:"STIX Two Text","STIXGeneral","Cambria Math","Times New Roman",serif; font-style:italic; }
+svg .up { font-style:normal; }
+svg .small { font-size:16px; fill:var(--muted); }
+svg .heading { font-size:20px; font-weight:500; }
+svg .tick { font-size:15px; fill:var(--muted); }
+svg .axis { stroke:#8a847e; stroke-width:1.2; fill:none; }
+svg .grid { stroke:#eeeae5; stroke-width:1; }
+svg .bar { transition:fill .35s; }
+.lam-row { display:flex; align-items:center; gap:12px; padding:10px 24px 4px; font-size:13px; color:var(--muted); }
+.lam-row label { white-space:nowrap; }
+.lam-row label b { font:italic 600 17px "STIX Two Text","STIXGeneral","Cambria Math","Times New Roman",serif; color:var(--warm); }
+#lam { flex:1; min-width:60px; accent-color:var(--warm); cursor:pointer; }
+#lam-value { font-variant-numeric:tabular-nums; color:var(--ink); min-width:34px; }
+.description { margin:0 24px; border-top:1px solid var(--border); padding:14px 0; min-height:76px; }
+.description p { color:var(--muted); margin:0; font-size:14px; max-width:690px; }
+.description sup { font-size:.7em; line-height:0; }
+.controls { display:flex; align-items:center; gap:12px; padding:15px 24px; background:#fbf9f6; border-top:1px solid var(--border); }
+.control { padding:7px 14px; border:1px solid #d6d6d6; border-radius:5px; background:white; color:var(--ink); font-size:12px; min-width:68px; }
+.control:hover { background:var(--soft); }
+#timeline { flex:1; min-width:50px; accent-color:var(--accent); cursor:pointer; }
+.time { white-space:nowrap; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+@media(max-width:650px) {
+ main { padding:24px 12px; } h1 { font-size:27px; } .intro { font-size:13px; }
+ .step { padding:12px 8px; font-size:11px; } .step span { font-size:9px; }
+ .lam-row { padding:10px 16px 4px; }
+ .description { margin:0 16px; min-height:112px; }
+ .description p { font-size:13px; }
+ .controls { padding:12px; gap:8px; } .control { padding:7px 10px; min-width:54px; }
+ .time { display:none; } .diagram-scroll { padding:0 6px; }
+}
+@media(max-width:520px) {
+ .step { font-size:0; padding:10px 8px; text-align:center; } .step span { font-size:11px; margin:0; }
+ svg .tick { font-size:20px; } svg .heading { font-size:24px; }
+}
+@media(prefers-reduced-motion:reduce) { * { transition:none !important; } }
+.embedded body { background:transparent; }
+.embedded main { max-width:none; padding:0; }
+.embedded .eyebrow,.embedded h1,.embedded .intro { display:none; }
+</style>
+</head>
+<body>
+<main>
+<p class="eyebrow">PEIRA · The role of λ</p>
+<h1>λ selects how many directions to keep</h1>
+<p class="intro">PEIRA keeps only the directions whose square-root canonical correlation √cᵢ exceeds λ.</p>
+<div class="card" id="animation">
+<nav class="steps" aria-label="Animation steps">
+<button class="step" data-step="0" aria-current="step"><span>01</span>Canonical spectrum</button>
+<button class="step" data-step="1"><span>02</span>Raise the threshold</button>
+<button class="step" data-step="2"><span>03</span>Learned amplitude</button>
+<button class="step" data-step="3"><span>04</span>Fewer directions</button>
+</nav>
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="Spectral filter diagram; scroll horizontally on small screens">
+<svg viewBox="0 40 1120 462" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">The threshold λ filters canonical directions</title>
+<desc id="diagram-desc">Left: bars of the square root of eight illustrative canonical correlations, from 0.92 down to 0.10, with a horizontal threshold line at λ. Bars below λ turn grey and are dropped. Right: the learned amplitude g(c, λ) = max(√c − λ, 0) to the power 1/2 for each direction, which is zero for dropped directions. As λ rises from 0.05 to 0.85, the number of kept directions falls from 8 to 1.</desc>
+<text x="90" y="80" class="heading"><tspan class="m">√c</tspan><tspan class="m" font-size="13" dy="5">i</tspan><tspan dy="-5"> and the threshold </tspan><tspan class="m" fill="#3d5a73">λ</tspan></text>
+<g id="right-heading"><text x="640" y="80" class="heading"><tspan>Learned amplitude </tspan><tspan class="m">g</tspan><tspan class="m up">(</tspan><tspan class="m">c</tspan><tspan class="m" font-size="13" dy="5">i</tspan><tspan class="m up" dy="-5">, </tspan><tspan class="m">λ</tspan><tspan class="m up">)</tspan></text></g>
+<g id="left-panel" transform="translate(90 0)"></g>
+<g id="right-panel" transform="translate(640 0)"></g>
+<g id="lam-line">
+ <line id="lam-rule" x1="84" x2="514" stroke="#3d5a73" stroke-width="2.5"/>
+ <text id="lam-tag" x="522" class="m" font-size="26" font-weight="600" style="fill:#3d5a73" dominant-baseline="middle">λ</text>
+</g>
+<text x="90" y="452"><tspan class="m" font-size="26" font-weight="600" fill="#3d5a73">λ</tspan><tspan id="lam-read" font-size="22" font-weight="600" fill="#3d5a73" font-variant-numeric="tabular-nums"> = 0.05</tspan><tspan dx="28" font-size="18">directions kept: </tspan><tspan id="kept" font-size="18" font-weight="600">8 of 8</tspan></text>
+<g id="formula"><text x="640" y="452" class="m" font-size="26" style="fill:#c42b10">g<tspan class="up">(</tspan>c<tspan class="up">, </tspan>λ<tspan class="up">) = max(√</tspan>c<tspan class="up"> − </tspan>λ<tspan class="up">, 0)</tspan><tspan class="up" font-size="15" dy="-11">1/2</tspan></text></g>
+<text x="90" y="490" class="small">Illustrative spectrum. The filter <tspan class="m">g</tspan> is the exact form from the paper; larger <tspan class="m">λ</tspan> keeps fewer directions.</text>
+</svg>
+</div>
+<div class="lam-row">
+<label for="lam">Drag <b>λ</b></label>
+<input id="lam" type="range" min="0" max="1" step="0.01" value="0.05" aria-label="Threshold lambda; dragging pauses the animation">
+<span id="lam-value">0.05</span>
+</div>
+<div class="description" aria-live="off">
+<p id="step-description"></p>
+</div>
+<div class="controls">
+<button class="control" id="toggle" aria-label="Pause animation">Pause</button>
+<button class="control" id="replay">Replay</button>
+<input id="timeline" type="range" min="0" max="15" step="0.05" value="0" aria-label="Animation timeline, in seconds">
+<span class="time" id="time">0:00 / 0:15</span>
+</div>
+</div>
+<noscript><p>Enable JavaScript to play the animation. The diagram’s full description is available to screen readers.</p></noscript>
+</main>
+<script>
+const SQRT_C = [.92, .80, .66, .52, .40, .29, .19, .10];
+const ACCENT = '#c42b10', FAINT = '#ddd7d0';
+const W = 420, Y0 = 350, H = 240;
+const ns = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const n = document.createElementNS(ns, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.append(n); return n; };
+const bw = W / SQRT_C.length;
+const panels = ['#left-panel', '#right-panel'].map(sel => {
+ const g = document.querySelector(sel);
+ for (const v of [0, .5, 1]) {
+  el('line', { x1: 0, x2: W, y1: Y0 - v * H, y2: Y0 - v * H, class: 'grid' }, g);
+  el('text', { x: -10, y: Y0 - v * H + 4, class: 'tick', 'text-anchor': 'end' }, g).textContent = String(v);
+ }
+ el('path', { d: `M0 ${Y0 - H - 8}V${Y0}H${W}`, class: 'axis' }, g);
+ const bars = SQRT_C.map((_, i) => {
+  el('text', { x: (i + .5) * bw, y: Y0 + 22, class: 'tick', 'text-anchor': 'middle' }, g).textContent = String(i + 1);
+  return el('rect', { x: i * bw + bw * .18, width: bw * .64, y: Y0, height: 0, class: 'bar' }, g);
+ });
+ const label = el('text', { x: W / 2, y: Y0 + 46, class: 'tick', 'text-anchor': 'middle' }, g);
+ label.append('direction ');
+ el('tspan', { class: 'm', 'font-size': 15 }, label).textContent = 'i';
+ return { g, bars };
+});
+const stages = [
+ ["Canonical spectrum", "Each bar is √cᵢ, the square root of the i-th canonical correlation between the two views. This spectrum is illustrative."],
+ ["Raise the threshold", "Raising λ moves the threshold up. A direction is kept only if √cᵢ > λ; directions below the line are dropped."],
+ ["Learned amplitude", "Each kept direction is learned with amplitude g(cᵢ, λ) = max(√cᵢ − λ, 0)<sup>1/2</sup>, a soft threshold: amplitudes shrink as λ grows and reach zero at √cᵢ = λ."],
+ ["Fewer directions", "Larger λ keeps fewer directions, so λ sets the effective dimension (capped by the projector dimension k). λ < √c₁ is needed; otherwise every direction is filtered out."]
+];
+const stageDurations = [3, 4, 4, 4];
+const stageStarts = stageDurations.map((_, i) => stageDurations.slice(0, i).reduce((a, b) => a + b, 0));
+const duration = stageDurations.reduce((a, b) => a + b, 0);
+const ease = x => { x = Math.min(Math.max(x, 0), 1); return x * x * (3 - 2 * x); };
+// λ sweeps 0.05 → 0.85 as in the video scene, split across steps 2 to 4.
+const lambdaAt = e => e < 3 ? .05 : e < 7 ? .05 + .40 * ease((e - 3.3) / 3.2) : e < 11 ? .45 + .20 * ease((e - 7.8) / 2.8) : .65 + .20 * ease((e - 11.3) / 2.2);
+const card = document.querySelector('#animation');
+const timeline = document.querySelector('#timeline');
+timeline.max = duration;
+const toggle = document.querySelector('#toggle');
+const lamInput = document.querySelector('#lam');
+const steps = [...document.querySelectorAll('[data-step]')];
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+const rightParts = ['#right-panel', '#right-heading', '#formula'].map(s => document.querySelector(s));
+let frameVisible = window.parent === window;
+const POSTER = stageStarts[stages.length - 1] + stageDurations[stages.length - 1] - .05;
+let playing = frameVisible && !motion.matches, elapsed = playing ? 0 : POSTER, previousTime = null, currentStage = -1, manualLambda = null;
+const fmt = s => `0:${String(Math.floor(s)).padStart(2, '0')}`;
+function render() {
+ const next = stageStarts.findIndex(s => s > elapsed);
+ const stage = next === -1 ? stages.length - 1 : next - 1;
+ const manual = manualLambda !== null;
+ const lam = manual ? manualLambda : lambdaAt(elapsed);
+ const grow = manual ? 1 : ease((elapsed - .2) / 1.5);
+ const rightOn = manual ? 1 : stage < 2 ? 0 : ease((elapsed - 7) / .8);
+ for (const part of rightParts) part.style.opacity = .22 + .78 * rightOn;
+ SQRT_C.forEach((s, i) => {
+  const kept = s > lam;
+  const vals = [s * grow, Math.sqrt(Math.max(s - lam, 0)) * (stage < 2 && !manual ? grow : 1)];
+  panels.forEach((p, k) => {
+   const h = vals[k] * H;
+   p.bars[i].setAttribute('y', Y0 - h);
+   p.bars[i].setAttribute('height', Math.max(h, 0));
+   p.bars[i].style.fill = k === 0 && !kept ? FAINT : ACCENT;
+  });
+ });
+ const yl = Y0 - lam * H;
+ document.querySelector('#lam-rule').setAttribute('y1', yl);
+ document.querySelector('#lam-rule').setAttribute('y2', yl);
+ document.querySelector('#lam-tag').setAttribute('y', yl);
+ document.querySelector('#lam-line').style.opacity = manual ? 1 : ease(elapsed / .6);
+ const keptN = SQRT_C.filter(s => s > lam).length;
+ document.querySelector('#lam-read').textContent = ` = ${lam.toFixed(2)}`;
+ document.querySelector('#kept').textContent = `${keptN} of ${SQRT_C.length}`;
+ if (!manual) lamInput.value = lam.toFixed(2);
+ document.querySelector('#lam-value').textContent = lam.toFixed(2);
+ if (stage !== currentStage) {
+  currentStage = stage;
+  for (const b of steps) {
+   if (Number(b.dataset.step) === stage) b.setAttribute('aria-current', 'step');
+   else b.removeAttribute('aria-current');
+  }
+  document.querySelector('#step-description').innerHTML = stages[stage][1];
+ }
+ timeline.value = elapsed;
+ timeline.setAttribute('aria-valuetext', `${Math.floor(elapsed)} seconds: ${stages[stage][0]}`);
+ document.querySelector('#time').textContent = `${fmt(elapsed)} / ${fmt(duration)}`;
+}
+function setPlaying(value) {
+ playing = value;
+ previousTime = null;
+ toggle.textContent = playing ? 'Pause' : 'Play';
+ toggle.setAttribute('aria-label', playing ? 'Pause animation' : 'Play animation');
+}
+// The settled state of a step, shown when a step is clicked or motion is reduced.
+const stepEnd = i => stageStarts[i] + stageDurations[i] - .05;
+window.addEventListener('message', event => {
+ if (window.parent === window || event.source !== window.parent || event.origin !== location.origin) return;
+ if (event.data?.type !== 'peira-animation-visibility' || typeof event.data.visible !== 'boolean') return;
+ if (frameVisible === event.data.visible) return;
+ frameVisible = event.data.visible;
+ if (manualLambda === null) elapsed = frameVisible && !motion.matches ? 0 : POSTER;
+ setPlaying(frameVisible && !motion.matches && manualLambda === null);
+ render();
+});
+toggle.addEventListener('click', () => { manualLambda = null; setPlaying(!playing); render(); });
+document.querySelector('#replay').addEventListener('click', () => { manualLambda = null; elapsed = 0; setPlaying(!motion.matches); if (motion.matches) elapsed = stepEnd(0); render(); });
+for (const b of steps) b.addEventListener('click', () => { manualLambda = null; elapsed = stepEnd(Number(b.dataset.step)); setPlaying(false); render(); });
+timeline.addEventListener('input', () => { manualLambda = null; elapsed = Number(timeline.value); setPlaying(false); render(); });
+lamInput.addEventListener('input', () => { manualLambda = Number(lamInput.value); setPlaying(false); render(); });
+motion.addEventListener('change', event => { if (event.matches) { setPlaying(false); elapsed = stepEnd(currentStage); render(); } });
+document.addEventListener('visibilitychange', () => { previousTime = null; });
+function tick(now) {
+ if (playing && frameVisible && !document.hidden) {
+  if (previousTime !== null) elapsed = (elapsed + Math.min((now - previousTime) / 1000, .1)) % duration;
+  previousTime = now;
+  render();
+ }
+ requestAnimationFrame(tick);
+}
+if (motion.matches) elapsed = stepEnd(0);
+setPlaying(playing);
+render();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

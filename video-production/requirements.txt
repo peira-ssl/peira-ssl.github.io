@@ -1,0 +1,4 @@
+# Versions used for the PEIRA cut. Python 3.9-3.12.
+Pillow==11.3.0
+numpy==2.0.2
+imageio-ffmpeg==0.6.0

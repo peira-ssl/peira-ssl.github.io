@@ -1,0 +1,87 @@
+1
+00:00:00,000 --> 00:00:03,000
+PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment
+
+2
+00:00:03,000 --> 00:00:07,200
+Self-distillation methods such as BYOL, SimSiam and DINO train a student to predict a teacher.
+
+3
+00:00:07,200 --> 00:00:10,200
+They work well in practice.
+
+4
+00:00:10,200 --> 00:00:14,200
+But they do not minimize a well-defined objective, so what they learn is poorly understood.
+
+5
+00:00:14,200 --> 00:00:19,700
+And representations can collapse onto a single point.
+
+6
+00:00:19,700 --> 00:00:22,900
+Two views x and y of one image go through encoders U and V, which map them to k‑dimensional features.
+
+7
+00:00:22,900 --> 00:00:26,900
+Two covariance statistics of the features: Σ measures the signal shared across views, and N the variability within each view.
+
+8
+00:00:26,900 --> 00:00:30,900
+For fixed encoders, the ridge regressor that predicts each encoded view from the other has a closed form, a matrix-valued signal-to-noise ratio.
+
+9
+00:00:30,900 --> 00:00:35,400
+PEIRA maximizes the trace of P, with a quadratic penalty that controls feature scale.
+
+10
+00:00:35,400 --> 00:00:38,100
+Toy experiment of the paper: both methods start from a tiny initialization (ρ₀ = 10⁻⁶), so every direction starts near 0.
+
+11
+00:00:38,100 --> 00:00:42,100
+In the paper's toy experiment, self-distillation from a tiny initialization stays collapsed: none of the four target directions grows.
+
+12
+00:00:42,100 --> 00:00:47,100
+For PEIRA, collapse is unstable. Training escapes it and recovers the target directions one after another, while the non-target directions stay at 0.
+
+13
+00:00:47,100 --> 00:00:51,100
+Across initialization scales, PEIRA recovers all four target directions every time.
+
+14
+00:00:51,100 --> 00:00:53,800
+Each bar is √cᵢ, the square root of the i-th canonical correlation between the two views. This spectrum is illustrative.
+
+15
+00:00:53,800 --> 00:00:57,800
+Raising λ moves the threshold up. A direction is kept only if √cᵢ > λ; directions below the line are dropped.
+
+16
+00:00:57,800 --> 00:01:01,800
+Each kept direction is learned with amplitude g(cᵢ, λ) = max(√cᵢ − λ, 0)¹ᐟ², a soft threshold: amplitudes shrink as λ grows and reach zero at √cᵢ = λ.
+
+17
+00:01:01,800 --> 00:01:05,800
+Larger λ keeps fewer directions, so λ sets the effective dimension. λ < √c₁ is needed; otherwise every direction is filtered out.
+
+18
+00:01:05,800 --> 00:01:10,500
+Alignment αᵢ ∈ [0, 1] of the top eigenvectors eᵢ of the noise N_(U,V) with respect to the signal Σ_(U,V), on a single training run.
+
+19
+00:01:10,500 --> 00:01:15,500
+The spectrum of N_(U,V) develops additional significant modes during training, consistent with the population analysis.
+
+20
+00:01:15,500 --> 00:01:20,500
+Online linear-probe top-1 and the negative PEIRA objective −ℰ_(PEIRA) are strongly correlated during training.
+
+21
+00:01:20,500 --> 00:01:28,900
+Linear-probe accuracy (Table 1): best on ImageNet-1K; on CIFAR-10, SIGReg leads and PEIRA beats VICReg.
+
+22
+00:01:29,200 --> 00:01:34,900
+peira-ssl.github.io · arXiv:2605.17671 · pip install peira-loss

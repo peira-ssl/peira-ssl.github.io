@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fbf9f6">
+  <title>PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment</title>
+  <meta name="description" content="PEIRA is a non-contrastive self-supervised learning method with an explicit objective: the trace of the optimal ridge regressor between two views. Its only stable equilibria are nontrivial global minimizers spanning the leading canonical correlation subspace. NeurIPS 2026.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment">
+  <meta property="og:description" content="A non-contrastive SSL objective defined through the trace of the optimal linear regressor between views. Collapse is unstable and the stable equilibria recover the top nonlinear CCA subspace. NeurIPS 2026.">
+  <meta property="og:image" content="https://peira-ssl.github.io/assets/img/social_card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="PEIRA title card with the gradient estimator diagram">
+  <meta property="og:url" content="https://peira-ssl.github.io/">
+  <meta property="og:site_name" content="PEIRA">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment">
+  <meta name="twitter:description" content="A non-contrastive SSL objective defined through the trace of the optimal linear regressor between views. NeurIPS 2026.">
+  <meta name="twitter:image" content="https://peira-ssl.github.io/assets/img/social_card.png">
+  <link rel="canonical" href="https://peira-ssl.github.io/">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inria+Sans:ital,wght@0,300;0,400;0,700;1,400&amp;family=Inria+Serif:wght@400;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body id="top">
+  <a class="skip-link" href="#summary">Skip to content</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+  <nav class="side-toc" aria-label="Page contents">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#method">From self-distillation to PEIRA</a>
+        <ul><li><a href="#optimization">Optimizing the objective</a></li></ul>
+      </li>
+      <li><a href="#theory">Canonical structure and stability</a></li>
+      <li><a href="#results">Experimental results</a>
+        <ul><li><a href="#representation-quality">Representation quality</a></li><li><a href="#dynamics">Spectral alignment</a></li><li><a href="#regularization">Robustness to λ</a></li><li><a href="#collapse">Resistance to collapse</a></li></ul>
+      </li>
+      <li><a href="#code">Using the loss</a></li>
+      <li><a href="#references">References</a></li>
+    </ol>
+  </nav>
+  <div class="wrap">
+    <header class="hero">
+      <h1>PEIRA: Learning Predictive Encoders<br class="desktop-break"> through Inter-View Regressor Alignment</h1>
+      <div class="authors">
+        <span>Michael Arbel<sup>1,*</sup></span>
+        <span>Basile Terver<sup>2,3,*</sup></span>
+        <span>Jean Ponce<sup>2,4</sup></span>
+      </div>
+      <p class="contribution"><sup>*</sup>Equal contribution. <span>NeurIPS 2026</span></p>
+      <div class="affiliations"><span><sup>1</sup>Univ. Grenoble Alpes, Inria, CNRS, Grenoble INP, LJK</span><span><sup>2</sup>Ecole Normale Supérieure / PSL</span><span><sup>3</sup>Inria Paris</span><span><sup>4</sup>New York University</span></div>
+      <div class="partner-logos"><a href="https://www.inria.fr/en" aria-label="Inria"><img src="assets/img/inria_logo.svg" alt="Inria" width="97" height="28"></a></div>
+      <div class="resource-links">
+        <a class="button" href="https://arxiv.org/abs/2605.17671"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>Paper <span class="button-detail">arXiv</span></a>
+        <a class="button" href="https://github.com/Basile-Terv/PEIRA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg>Code</a>
+        <a class="button" href="https://github.com/MichaelArbel/peira-loss"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8l9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>Loss package <span class="button-detail">pip</span></a>
+        <a class="button" href="https://huggingface.co/peira-ssl/PEIRA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></svg>Checkpoints <span class="button-detail">HF</span></a>
+      </div>
+    </header>
+    <details class="mobile-toc">
+      <summary>On this page</summary>
+      <nav aria-label="Compact page contents"><a href="#summary">Summary</a><a href="#method">From self-distillation to PEIRA</a><a href="#theory">Canonical structure and stability</a><a href="#results">Experimental results</a><a href="#code">Using the loss</a><a href="#references">References</a></nav>
+    </details>
+    <main>
+      <section id="summary" class="section">
+        <h2>Summary</h2>
+        <p>Self-distillation methods such as SimSiam, BYOL, I-JEPA and DINO train a student network to predict a teacher network. They work well in practice, but they do not minimize a well-defined objective, so what they learn is poorly understood.</p>
+        <p>We analyze a JEPA variant in which a regularized linear regressor predicts the representation of each view from the other. Its non-collapsed stable equilibria align with the leading <strong>nonlinear canonical correlation</strong> subspaces, but collapsed equilibria can also be stable attractors.</p>
+        <p><strong>PEIRA</strong> replaces the heuristic with an explicit objective: maximize the trace of the optimal linear regressor between views, with a penalty that keeps feature scale in check. Its only stable equilibria are nontrivial global minimizers that recover the same canonical subspaces, with the regularization $\lambda$ selecting the effective dimension. On ImageNet-1K and CIFAR-10, PEIRA is competitive with VICReg and LeJEPA baselines; with a 1024-dimensional projector it reaches <strong class="highlight">69.17%</strong> ImageNet-1K linear-probe accuracy after 100 epochs of ResNet-50 pretraining.</p>
+      </section>
+
+      <section id="method" class="section">
+        <h2>From self-distillation to PEIRA</h2>
+        <figure id="question-animation" class="peira-animation">
+          <iframe src="assets/anim/question.html?embed=1" title="Interactive animation: what does self-distillation optimize?" loading="lazy"></iframe>
+        </figure>
+        <p>Two encoders $U$ and $V$ map the two views $x$ and $y$ of a data point to $\mathbb{R}^k$. For fixed encoders, the ridge regressor that predicts each encoded view from the other has a closed form, a matrix-valued signal-to-noise ratio:</p>
+        $$P_{U,V} = \Sigma_{U,V}\,(N_{U,V} + \lambda I)^{-1},$$
+        $$\begin{aligned} \Sigma_{U,V} &amp;= \mathbb{E}\big[V(y)U(x)^{\top} + U(x)V(y)^{\top}\big], \\ N_{U,V} &amp;= \mathbb{E}\big[U(x)U(x)^{\top} + V(y)V(y)^{\top}\big]. \end{aligned}$$
+        <p>$\Sigma_{U,V}$ measures the signal shared across views and $N_{U,V}$ the variability within each view. PEIRA (Predictive Encoders through Inter-View Regressor Alignment) minimizes the following energy, which is the same as maximizing the trace of $P_{U,V}$ under a penalty on feature scale:</p>
+        <div class="equation-highlight">
+        $$\mathcal{E}_{\text{PEIRA}}(U,V) = -\tfrac{1}{2}\operatorname{Tr}\big(P_{U,V}\big) + \tfrac{\lambda}{2}\big(\|U\|_2^2 + \|V\|_2^2\big).$$
+        </div>
+        <p>The trace sums the contributions of all eigen-modes of the regressor, so maximizing it should favor representations that share the most information between views. The quadratic term controls feature scale, so the trace cannot grow by simply enlarging the features. Since $\operatorname{Tr}(P_{U,V})$ is the Frobenius inner product of $\Sigma_{U,V}$ and $(N_{U,V}+\lambda I)^{-1}$, minimizing $\mathcal{E}_{\text{PEIRA}}$ should also encourage the eigenbases of the signal and noise matrices to align.</p>
+        <figure id="idea-animation" class="peira-animation">
+          <iframe src="assets/anim/idea.html?embed=1" title="Interactive animation: aligning views through an optimal ridge regressor" loading="lazy"></iframe>
+        </figure>
+
+        <h3 id="optimization">Optimizing the objective</h3>
+        <p>Backpropagating through mini-batch estimates of $P_{U,V}$ gives high-variance gradients. Instead, PEIRA uses an auxiliary loss with the same gradient as $\mathcal{E}_{\text{PEIRA}}$, in which the regressor $P^\star = P_{U,V}$ and $Q^\star = (N_{U,V}+\lambda I)^{-1}$ are held fixed:</p>
+        $$\begin{aligned} \mathcal{L}_{\text{aux}}(U,V;P,Q) &amp;= \tfrac{1}{2}\,\mathbb{E}\big[U(x)^{\top}Q\,(PU(x) - V(y))\big] \\ &amp;\quad + \tfrac{1}{2}\,\mathbb{E}\big[V(y)^{\top}Q\,(PV(y) - U(x))\big] \\ &amp;\quad + \tfrac{\lambda}{2}\,\mathbb{E}\big[\|U(x)\|^2 + \|V(y)\|^2\big], \end{aligned}$$
+        <p>with expectations over pairs of views $(x, y)$. $P^\star$ and $Q^\star$ then only need to be estimated, which allows exponential moving averages (EMA) of the second moments. The gradient of $\mathcal{E}_{\text{PEIRA}}$ is $\tfrac{4}{\lambda}$-Lipschitz for $0&lt;\lambda&lt;1$, which supports gradient-based optimization and informs the choice of learning rate.</p>
+        <figure>
+          <a class="figure-link" href="assets/img/peira_diagram.png" target="_blank" rel="noopener" aria-label="Open the gradient estimator diagram at full size"><img src="assets/img/peira_diagram.png" width="3600" height="1201" loading="lazy" alt="Encoders U_theta and V_psi produce features Phi_X and Phi_Y. A stop-gradient branch updates EMA statistics Sigma and N, from which a k by k ridge solve gives Q-hat and P-hat. These are held fixed in the auxiliary loss, whose gradient updates both encoders."></a>
+          <figcaption><strong>Fig. 1: Gradient estimator of Algorithm 1.</strong> Feature second moments, taken through a stop-gradient (sg), update EMA statistics that give closed-form estimates $\hat P^\star, \hat Q^\star$; these are held fixed in the auxiliary loss that updates the encoders.</figcaption>
+        </figure>
+        <div class="algorithm" role="group" aria-labelledby="algo-title">
+          <div class="algorithm-title" id="algo-title"><strong>Algorithm 1</strong> SC-PEIRA (stochastic compositional PEIRA)</div>
+          <p class="algorithm-input">Input: encoder parameters $\theta,\psi$; $k\times k$ matrices $\Sigma, N$; regularization $\lambda$; EMA rate $\eta\in(0,1]$.</p>
+          <ol>
+            <li>Sample a mini-batch $\mathcal{B}$ of $B$ view pairs.</li>
+            <li>$\Phi_X, \Phi_Y \leftarrow (U_\theta(x))_{\mathcal{B}},\ (V_\psi(y))_{\mathcal{B}}$</li>
+            <li>$\Sigma \leftarrow (1-\eta)\Sigma + \tfrac{\eta}{B}(\Phi_X^{\top}\Phi_Y + \Phi_Y^{\top}\Phi_X)$</li>
+            <li>$N \leftarrow (1-\eta)N + \tfrac{\eta}{B}(\Phi_X^{\top}\Phi_X + \Phi_Y^{\top}\Phi_Y)$</li>
+            <li>$\hat{P}^\star, \hat{Q}^\star \leftarrow \Sigma(N+\lambda I)^{-1},\ (N+\lambda I)^{-1}$</li>
+            <li>Update $\theta,\psi$ with $\nabla_{\theta,\psi}\widehat{\mathcal{L}}_{\text{aux}}(U_\theta, V_\psi; \hat P^\star, \hat Q^\star)$; repeat until converged.</li>
+          </ol>
+        </div>
+        <p>The linear estimators come analytically from running feature statistics, which is efficient for moderate $k$. When the two views are symmetric, a single shared encoder can be used ($V_\psi = U_\theta$). In practice $\eta$ is annealed over training, favoring fresh statistics early and lower variance near convergence.</p>
+      </section>
+
+      <section id="theory" class="section">
+        <h2>Canonical structure and stability</h2>
+        <p>The analysis works in the space of all square-integrable encoders, without architectural restrictions. Nonlinear canonical correlation analysis (CCA) pairs functions $\psi_i(x)$ and $\xi_i(y)$ of the two views that are maximally correlated; their canonical correlations $c_1 \ge c_2 \ge \dots$ measure the strength of the shared signal along each direction. Both dynamics below converge to equilibria built from these directions, but they differ in which equilibria are stable (an equilibrium is stable when training returns to it after a small perturbation).</p>
+        <div class="comparison">
+          <div class="comparison-column">
+            <h4>Self-distillation</h4>
+            <p class="comparison-detail">Stop-gradient on the teacher view, as in SimSiam</p>
+            <ul>
+              <li>Not a gradient flow, but admits a Lyapunov function, so it converges to an equilibrium.</li>
+              <li>Equilibria span at most $k$ canonical directions, each kept only if $c_i^2 \ge 4\lambda$, with amplitude $\tfrac{1}{2}\big(|c| \pm \sqrt{c^2 - 4\lambda}\big)$; stable ones take the $+$ sign:
+                $$f(c,\lambda) = \tfrac{1}{2}\big(|c| + \sqrt{c^2 - 4\lambda}\big).$$</li>
+              <li>Non-collapsed stable equilibria span the leading canonical directions.</li>
+              <li>The totally collapsed solution $U = V = 0$ is a <strong>stable</strong> equilibrium, and so are some partially collapsed ones.</li>
+            </ul>
+          </div>
+          <div class="comparison-column comparison-ours">
+            <h4>PEIRA</h4>
+            <p class="comparison-detail">Gradient flow of $\mathcal{E}_{\text{PEIRA}}$</p>
+            <ul>
+              <li>Converges to critical points with the same canonical structure, using the soft threshold
+                $$g(c,\lambda) = \max\big(\sqrt{c} - \lambda,\ 0\big)^{1/2}.$$</li>
+              <li>The only stable equilibria are <strong>global minimizers</strong>, spanning the top-$r_{\max}$ canonical subspace.</li>
+              <li>Every other critical point is a strict saddle: no spurious local minima, and collapse is <strong>unstable</strong>.</li>
+              <li>$\lambda$ selects the effective dimension $r_{\max}$, capped by $k$.</li>
+            </ul>
+          </div>
+        </div>
+        <figure id="guarantee-animation" class="peira-animation">
+          <iframe src="assets/anim/guarantee.html?embed=1" title="Interactive animation: collapse becomes unstable under PEIRA" loading="lazy"></iframe>
+        </figure>
+        <p>At the stable PEIRA equilibria, with orthonormal vectors $\mathbf{q}_i \in \mathbb{R}^k$,</p>
+        $$U^\star(x) = \tfrac{1}{\sqrt 2}\sum_{i=1}^{r_{\max}} g(c_i,\lambda)\,\psi_i(x)\,\mathbf{q}_i,$$
+        $$V^\star(y) = \tfrac{1}{\sqrt 2}\sum_{i=1}^{r_{\max}} g(c_i,\lambda)\,\xi_i(y)\,\mathbf{q}_i,$$
+        $$\min_{U,V}\ \mathcal{E}_{\text{PEIRA}}(U,V) = -\tfrac{1}{2}\sum_{i=1}^{r_{\max}}\big(\sqrt{c_i} - \lambda\big)^2.$$
+        <p>Here $r_{\max}$ is the number of directions with $\sqrt{c_i} &gt; \lambda$, up to $\min(k, R)$ with $R$ the number of canonical directions. The trivial representation does not reach this value, so it cannot be a stable point. A practical consequence: when the target dimension is unknown, choose $k$ conservatively large and let $\lambda$ set the number of active canonical directions. The condition $\lambda &lt; \sqrt{c_1}$ is needed; otherwise every direction is filtered out.</p>
+        <p>These results hold at the population level, over all square-integrable encoders, and assume distinct canonical correlations. They do not directly apply to neural networks trained on finite data; there, they describe what optimizing the objective aims for rather than a guarantee.</p>
+        <figure id="lambda-animation" class="peira-animation">
+          <iframe src="assets/anim/lambda.html?embed=1" title="Interactive animation: lambda selects how many directions to keep" loading="lazy"></iframe>
+        </figure>
+      </section>
+
+      <section id="results" class="section">
+        <h2>Experimental results</h2>
+        <p>We evaluate PEIRA by linear-probe classification on <strong>ImageNet-1K</strong> and <strong>CIFAR-10</strong>, and by transfer to eight downstream classification datasets. We compare against VICReg <a href="#ref-vicreg" aria-label="Reference 1: VICReg">[1]</a> and SIGReg/LeJEPA <a href="#ref-lejepa" aria-label="Reference 2: LeJEPA">[2]</a> with the same augmentations, pretraining budgets and linear probes. PEIRA uses $\lambda=0.1$ on ImageNet-1K and $\lambda=0.7$ on CIFAR-10.</p>
+
+        <h3 id="representation-quality">Representation quality</h3>
+        <p>On ImageNet-1K, PEIRA with $k=1024$ is the strongest method under this controlled protocol. On CIFAR-10 it outperforms VICReg and comes close to SIGReg, and on transfer it outperforms SIGReg on average and approaches VICReg.</p>
+        <figure class="table-figure">
+          <div class="table-scroll" role="region" aria-label="Table 1: linear-probe top-1 accuracy" tabindex="0">
+            <table class="results-table">
+              <thead>
+                <tr><th scope="col">Method</th><th scope="col">Approach</th><th scope="col">ImageNet-1K</th><th scope="col">CIFAR-10</th><th scope="col">Transfer</th></tr>
+              </thead>
+              <tbody class="quoted">
+                <tr><th scope="row">BYOL <a href="#ref-byol">[4]</a></th><td>self-distillation (EMA)</td><td>69.3</td><td>–</td><td>–</td></tr>
+                <tr><th scope="row">SimSiam <a href="#ref-simsiam">[5]</a></th><td>self-distillation (stop-gradient)</td><td>67.9</td><td>–</td><td>–</td></tr>
+                <tr><th scope="row">SimCLR <a href="#ref-simclr">[6]</a></th><td>contrastive (negatives)</td><td>68.5</td><td>–</td><td>–</td></tr>
+              </tbody>
+              <tbody>
+                <tr><th scope="row">VICReg <a href="#ref-vicreg">[1]</a></th><td>optimization</td><td>68.81 <span class="pm">± 0.09</span></td><td>90.92 <span class="pm">± 0.14</span></td><td class="best">72.07</td></tr>
+                <tr><th scope="row">SIGReg <a href="#ref-lejepa">[2]</a></th><td>optimization</td><td>66.26 <span class="pm">± 0.28</span></td><td class="best">92.34 <span class="pm">± 0.21</span></td><td>68.27</td></tr>
+                <tr class="ours"><th scope="row">PEIRA ($k=256$)</th><td>optimization</td><td>66.45 <span class="pm">± 0.11</span></td><td>91.36 <span class="pm">± 0.12</span></td><td>70.89 <span class="pm">± 0.18</span></td></tr>
+                <tr class="ours"><th scope="row">PEIRA ($k=1024$)</th><td>optimization</td><td class="best">69.17 <span class="pm">± 0.06</span></td><td>91.68 <span class="pm">± 0.18</span></td><td>71.09 <span class="pm">± 0.24</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <figcaption><strong>Table 1: Linear-probe top-1 accuracy (%).</strong> ResNet-50, 100 epochs on ImageNet-1K; ResNet-18, 1000 epochs on CIFAR-10. VICReg, SIGReg and PEIRA: mean ± sample standard deviation over 3 seeds, same augmentations, pretraining budget and probe, with method-specific projector and optimization hyperparameters; SIGReg uses a narrower projector (hidden width 2048 vs. 8192). BYOL and SimSiam are quoted from Table 4 of [1] and SimCLR from Table S3 of [3] (100-epoch ResNet-50), outside the controlled protocol. Transfer: mean linear-probe accuracy over the 8 LeJEPA datasets (VICReg and SIGReg: seed 1). $k$: PEIRA projector output dimension. Bold: best controlled result per column. ImageNet-1K checkpoints of the controlled rows (all seeds) are on <a href="https://huggingface.co/peira-ssl/PEIRA">Hugging Face</a>.</figcaption>
+        </figure>
+
+        <h3 id="dynamics">Spectral alignment during training</h3>
+        <p>The leading eigendirections of the noise matrix $N_{U,V}$ progressively align with those of the signal matrix $\Sigma_{U,V}$, while additional significant spectral modes emerge, consistent with the population analysis. The negative objective closely tracks linear-probe accuracy, suggesting its potential as a label-free indicator of representation quality.</p>
+        <figure id="cifar-animation" class="peira-animation">
+          <iframe src="assets/anim/cifar.html?embed=1" title="Interactive animation: dynamics of PEIRA on CIFAR-10" loading="lazy"></iframe>
+          <figcaption><strong>Fig. 2: Dynamics of PEIRA on CIFAR-10.</strong> Signal and noise eigenvectors align (left), new spectral modes emerge (middle), and the negative objective tracks online linear-probe accuracy (right).</figcaption>
+        </figure>
+
+        <h3 id="regularization">Robustness to the regularization</h3>
+        <p>In an ablation sweep (online linear probe, 1 to 3 seeds per setting), mean ImageNet-1K accuracy varies by only 1.36 percentage points over $\lambda\in[0.025, 0.5]$. Smaller $\lambda$ accelerates the early growth of backbone effective rank, consistent with the spectral role of $\lambda$ predicted by the theory.</p>
+        <figure>
+          <a class="figure-link" href="assets/img/in1k_lambda_study.png" target="_blank" rel="noopener" aria-label="Open the ImageNet-1K regularization study at full size"><img src="assets/img/in1k_lambda_study.png" width="2691" height="760" loading="lazy" alt="Three panels on ImageNet-1K: linear-probe top-1 versus lambda from 0.025 to 0.5; backbone effective rank versus epoch colored by lambda; online linear-probe top-1 versus the negative PEIRA objective across checkpoints."></a>
+          <figcaption><strong>Fig. 3: Study of PEIRA regularization on ImageNet-1K.</strong> ResNet-50, 100 epochs, ablation setting with 1 to 3 seeds per point. Mean online linear-probe accuracy varies by only 1.36 points over $\lambda\in[0.025, 0.5]$ (left); smaller $\lambda$ grows effective rank faster early in training, and final ranks differ by about 2% (middle); $-\mathcal{E}_{\text{PEIRA}}$ correlates with accuracy (right).</figcaption>
+        </figure>
+
+        <h3 id="collapse">Resistance to collapse</h3>
+        <p>We compare PEIRA with its self-distillation counterpart across initialization scales on CIFAR-10. At zero initialization scale, the encoders produce the zero representation, which is a stable attractor of the self-distillation dynamics.</p>
+        <figure>
+          <a class="figure-link" href="assets/img/cifar10_init_comparison.png" target="_blank" rel="noopener" aria-label="Open the initialization-scale comparison at full size"><img src="assets/img/cifar10_init_comparison.png" width="1700" height="594" loading="lazy" alt="CIFAR-10 accuracy, mean alignment and effective rank over 1000 epochs for PEIRA (solid) and self-distillation (dashed) at initialization scales 0.01, 0.1, 1 and 10."></a>
+          <figcaption><strong>Fig. 4: Initialization scale on CIFAR-10.</strong> In this controlled setting, self-distillation (dashed) is sensitive to initialization: its mean accuracy is 77.69% and 81.10% at $\sigma_0 = 0.1$ and $1$, but falls to 49.59% at $0.01$ and 46.00% at $10$. For $\sigma_0 \le 1$, PEIRA (solid) reaches higher accuracy, alignment and effective rank; at $\sigma_0 = 10$, this configuration of PEIRA stays near rank one.</figcaption>
+        </figure>
+      </section>
+
+      <section id="code" class="section">
+        <h2>Using the loss</h2>
+        <p>The loss is a standalone PyTorch package. The EMA statistics and step counter live in the module <code>state_dict</code>, and batch second moments are summed across ranks for multi-GPU training. Call the loss exactly once per training step.</p>
+        <pre class="code-sample"><code>pip install peira-loss</code></pre>
+        <pre class="code-sample"><code>import torch
+from peira_loss import PEIRALoss
+
+loss_fn = PEIRALoss(latent_dim=1024, T_max=total_steps)  # 69.17% row of Table 1
+# CIFAR-10: PEIRALoss(latent_dim=..., T_max=..., reg=0.7)
+z1, z2 = projector(encoder(view1)), projector(encoder(view2))  # [B, 1024] each
+out = loss_fn(z1, z2)          # dict: loss, peira_loss, trace_P, cse_loss, reg_loss, peira_lr
+out["loss"].backward()</code></pre>
+        <p>Training code, configs and reproduction commands for every table and figure are in <a href="https://github.com/Basile-Terv/PEIRA">Basile-Terv/PEIRA</a>. ResNet-50 backbones from Table 1 are on <a href="https://huggingface.co/peira-ssl/PEIRA">Hugging Face</a>.</p>
+      </section>
+
+      <section id="references" class="section">
+        <h2>References</h2>
+        <p id="ref-vicreg">[1] Adrien Bardes, Jean Ponce and Yann LeCun. <a href="https://openreview.net/forum?id=xm6YD62D1Ub">VICReg: Variance-Invariance-Covariance Regularization for Self-Supervised Learning</a>. ICLR, 2022.</p>
+        <p id="ref-lejepa">[2] Randall Balestriero and Yann LeCun. <a href="https://arxiv.org/abs/2511.08544">LeJEPA: Provable and Scalable Self-Supervised Learning Without the Heuristics</a>. arXiv:2511.08544, 2025.</p>
+        <p id="ref-rankme">[3] Quentin Garrido, Randall Balestriero, Laurent Najman and Yann LeCun. <a href="https://arxiv.org/abs/2210.02885">RankMe: Assessing the Downstream Performance of Pretrained Self-Supervised Representations by Their Rank</a>. ICML, 2023.</p>
+        <p id="ref-byol">[4] Jean-Bastien Grill et al. <a href="https://arxiv.org/abs/2006.07733">Bootstrap Your Own Latent: A New Approach to Self-Supervised Learning</a>. NeurIPS, 2020.</p>
+        <p id="ref-simsiam">[5] Xinlei Chen and Kaiming He. <a href="https://arxiv.org/abs/2011.10566">Exploring Simple Siamese Representation Learning</a>. CVPR, 2021.</p>
+        <p id="ref-simclr">[6] Ting Chen, Simon Kornblith, Mohammad Norouzi and Geoffrey Hinton. <a href="https://arxiv.org/abs/2002.05709">A Simple Framework for Contrastive Learning of Visual Representations</a>. ICML, 2020.</p>
+      </section>
+      <section id="bibtex" class="bib-section">
+        <div class="bib-heading"><h2>BibTeX</h2><button class="copy-button" type="button" hidden>Copy</button></div>
+        <pre><code id="citation">@inproceedings{arbel2026peira,
+  title     = {{PEIRA}: Learning Predictive Encoders through Inter-View Regressor Alignment},
+  author    = {Arbel, Michael and Terver, Basile and Ponce, Jean},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2026},
+  eprint    = {2605.17671},
+  archivePrefix = {arXiv},
+}</code></pre>
+        <span class="copy-status" role="status" aria-live="polite"></span>
+      </section>
+    </main>
+    <footer><p>PEIRA · <a href="https://arxiv.org/abs/2605.17671">Read the paper</a> · <a href="https://github.com/Basile-Terv/PEIRA">Code</a> · <a href="https://github.com/MichaelArbel/peira-loss">Loss package</a></p></footer>
+  </div>
+</body>
+</html>

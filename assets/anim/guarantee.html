@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collapse becomes unstable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inria+Sans:ital,wght@0,300;0,400;0,700;1,400&family=Inria+Serif:wght@400;700&display=swap">
+<script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embedded');</script>
+<style>
+:root { color-scheme: light; --ink:#1d1d1b; --muted:#5e5955; --accent:#c42b10; --soft:#fcefe9; --border:#e7e2dc; --rust:#3d5a73; --faint:#b9b9b9; }
+* { box-sizing:border-box; }
+body { margin:0; background:white; color:var(--ink); font:15px/1.55 "Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+main { max-width:1160px; padding:44px 24px; margin:auto; }
+.eyebrow { margin:0 0 6px; color:var(--muted); font-size:11px; font-weight:650; letter-spacing:.14em; text-transform:uppercase; }
+h1 { margin:0; font-family:"Inria Serif",Georgia,serif; font-size:30px; font-weight:600; line-height:1.2; letter-spacing:-.02em; }
+.intro { margin:10px 0 25px; color:var(--muted); max-width:760px; }
+.card { background:white; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.steps { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--border); }
+button { font:inherit; cursor:pointer; }
+.step { padding:14px 14px; border:0; border-right:1px solid var(--border); background:white; color:var(--muted); text-align:left; font-size:12px; transition:background .2s; }
+.step:last-child { border-right:0; }
+.step span { display:block; font-size:10px; letter-spacing:.08em; margin-bottom:3px; }
+.step[aria-current="step"] { background:var(--soft); color:var(--ink); box-shadow:inset 0 -3px var(--accent); }
+.step:hover { background:#fdf6f2; }
+:focus-visible { outline:3px solid var(--rust); outline-offset:-3px; }
+.diagram-scroll { overflow-x:auto; padding:10px 14px 4px; }
+svg { display:block; width:100%; height:auto; }
+svg text { font-family:"Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; fill:var(--ink); font-size:17px; }
+svg .math { font-family:"STIX Two Text","STIXGeneral","Cambria Math","Times New Roman",serif; font-style:italic; }
+svg .muted { fill:var(--muted); }
+svg .tick { fill:var(--muted); font-size:15px; }
+svg .title { font-size:22px; font-weight:600; }
+svg .count { font-size:18px; font-weight:600; }
+svg .rust { fill:var(--rust); }
+svg .acc { fill:var(--accent); }
+svg .pill text { fill:white; font-size:16px; font-weight:600; }
+.grid { stroke:#ececec; stroke-width:1; }
+.axis { stroke:#c4c4c4; stroke-width:1.5; fill:none; }
+.curve { fill:none; stroke-linecap:round; stroke-linejoin:round; }
+[data-phase] { opacity:.25; transition:opacity .5s; }
+[data-phase].done { opacity:.85; }
+[data-phase].active { opacity:1; }
+.pill { transition:opacity .5s; }
+.description { margin:0 24px; border-top:1px solid var(--border); padding:14px 0 12px; }
+.description p { color:var(--ink); margin:0; font-size:14px; max-width:760px; min-height:44px; }
+.description .foot { color:var(--muted); font-size:12px; margin-top:8px; min-height:0; }
+.controls { display:flex; align-items:center; gap:12px; padding:14px 24px; background:#fbf9f6; border-top:1px solid var(--border); }
+.control { padding:7px 14px; border:1px solid #d4d4d4; border-radius:5px; background:white; color:var(--ink); font-size:12px; min-width:68px; }
+.control:hover { background:var(--soft); }
+input[type=range] { flex:1; min-width:50px; accent-color:var(--accent); cursor:pointer; }
+.time { white-space:nowrap; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+@media(max-width:650px) {
+ main { padding:24px 12px; } h1 { font-size:26px; } .intro { font-size:13px; }
+ .step { padding:11px 8px; font-size:11px; } .step span { font-size:9px; }
+ .description { margin:0 16px; } .description p { font-size:13px; min-height:62px; }
+ .controls { padding:12px; gap:8px; } .control { padding:7px 10px; min-width:54px; }
+ .time { display:none; } .diagram-scroll { padding:6px 6px 0; }
+}
+@media(max-width:520px) {
+ .step { font-size:0; padding:10px 8px; text-align:center; } .step span { font-size:11px; margin:0; }
+ svg text { font-size:21px; } svg .tick { font-size:20px; } svg .count { font-size:21px; } svg .title { font-size:25px; }
+}
+@media(prefers-reduced-motion:reduce) { * { transition:none !important; } }
+.embedded body { background:white; }
+.embedded main { max-width:none; padding:0; }
+.embedded .eyebrow,.embedded h1,.embedded .intro { display:none; }
+</style>
+</head>
+<body>
+<main>
+<p class="eyebrow">PEIRA · Canonical structure and stability</p>
+<h1>Collapse becomes unstable</h1>
+<p class="intro">In the paper's toy experiment, both methods start from a tiny initialization. Self-distillation stays collapsed; for PEIRA, collapse is unstable and training recovers the target directions.</p>
+<div class="card" id="animation">
+<nav class="steps" aria-label="Animation steps">
+<button class="step" data-step="0" aria-current="step"><span>01</span>Tiny initialization</button>
+<button class="step" data-step="1"><span>02</span>Self-distillation</button>
+<button class="step" data-step="2"><span>03</span>PEIRA</button>
+<button class="step" data-step="3"><span>04</span>Across init scales</button>
+</nav>
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="Toy experiment plots; scroll horizontally on small screens">
+<svg viewBox="0 0 960 560" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">Spectral ratios of self-distillation and PEIRA during training from a tiny initialization</title>
+<desc id="diagram-desc">Two panels plot the spectral ratio (learned over target) of the top six directions against training step on a log scale, from initialization scale 10 to the minus 6. Four directions are targets with ratio 1 and two are non-targets with ratio 0. Self-distillation stays at 0 for all directions: 0 of 4 target directions reached. PEIRA's four target directions rise to 1 one after another while the two non-target directions stay at 0: 4 of 4 reached. A table below gives the number of target directions recovered at the end of training for initialization scales 10 to the minus 2 through 10 to the minus 6: PEIRA 4, 4, 4, 4, 4; self-distillation 4, 4, 3, 1, 0.</desc>
+<g id="panels"></g>
+<line x1="24" x2="936" y1="402" y2="402" stroke="#e7e2dc"/>
+<g data-phase="3" id="summary"></g>
+</svg>
+</div>
+<div class="description" aria-live="off">
+<p id="step-description"></p>
+<p class="foot">Real runs (paper Fig. G.6 setup), init scale <i>ρ</i><sub>0</sub> = 10<sup>−6</sup>, linear encoders, 400,000 updates. Each line is one of the top 6 learned directions: the 4 coloured lines are the target directions (target value 1), the 2 grey lines are non-target directions (target value 0, so they should stay at 0).</p>
+</div>
+<div class="controls">
+<button class="control" id="toggle" aria-label="Pause animation">Pause</button>
+<button class="control" id="replay">Replay</button>
+<input id="timeline" type="range" min="0" max="16" step="0.05" value="0" aria-label="Animation timeline, in seconds">
+<span class="time" id="time">0:00 / 0:16</span>
+</div>
+</div>
+<noscript><p>Enable JavaScript to play the animation. The plots' full description is available to screen readers.</p></noscript>
+</main>
+<script>
+const DATA = {"step":[100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,2600,2700,2800,2900,3000,3200,3300,3500,3600,3800,3900,4100,4300,4400,4600,4800,5000,5200,5500,5700,5900,6200,6500,6700,7000,7300,7600,8000,8300,8600,9000,9400,9800,10200,10600,11100,11600,12100,12600,13100,13700,14300,14900,15500,16200,16800,17600,18300,19100,19900,20700,21600,22500,23500,24500,25600,26600,27800,29000,30200,31500,32800,34200,35700,37200,38800,40400,42100,43900,45800,47700,49800,51900,54100,56400,58800,61300,63900,66600,69500,72400,75500,78700,82100,85600,89200,93000,97000,101100,105400,109900,114600,119400,124500,129800,135300,141100,147100,153400,159900,166700,173800,181200,188900,196900,205300,214100,223200,232700,242600,252900,263700,274900,286600,298800,311500,324800,338600,353000,368000,383700,400000],"sd":[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]],"peira":[[0,0,0,0,0,0],[0.983,0,0,0,0,0],[1.0,0,0,0,0,0],[1.0,0,0,0,0,0],[1.0,0.00838,0,0,0,0],[1.0,0.359,0,0,0,0],[1.0,0.802,0,0,0,0],[1.0,0.946,0,0,0,0],[1.0,0.985,0,0,0,0],[1.0,0.996,0,0,0,0],[1.0,0.999,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0,0,0,0],[1.0,1.0,0.00107,0,0,0],[1.0,1.0,0.00368,0,0,0],[1.0,1.0,0.00679,0,0,0],[1.0,1.0,0.0225,0,0,0],[1.0,1.0,0.0399,0,0,0],[1.0,1.0,0.112,0,0,0],[1.0,1.0,0.248,0,0,0],[1.0,1.0,0.332,0,0,0],[1.0,1.0,0.504,0,0,0],[1.0,1.0,0.65,0,0,0],[1.0,1.0,0.76,0,0,0],[1.0,1.0,0.839,0,0,0],[1.0,1.0,0.912,0,0,0],[1.0,1.0,0.942,0,0,0],[1.0,1.0,0.962,0,0,0],[1.0,1.0,0.98,0,0,0],[1.0,1.0,0.989,0,0,0],[1.0,1.0,0.993,0,0,0],[1.0,1.0,0.996,0,0,0],[1.0,1.0,0.998,0,0,0],[1.0,1.0,0.999,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0,0,0],[1.0,1.0,1.0,0.00119,0,0],[1.0,1.0,1.0,0.00258,0,0],[1.0,1.0,1.0,0.00577,0,0],[1.0,1.0,1.0,0.0132,0,0],[1.0,1.0,1.0,0.0313,0,0],[1.0,1.0,1.0,0.075,0,0],[1.0,1.0,1.0,0.173,0,0],[1.0,1.0,1.0,0.357,0,0],[1.0,1.0,1.0,0.601,0,0],[1.0,1.0,1.0,0.807,0,0],[1.0,1.0,1.0,0.923,0,0],[1.0,1.0,1.0,0.973,0,0],[1.0,1.0,1.0,0.991,0,0],[1.0,1.0,1.0,0.997,0,0],[1.0,1.0,1.0,0.999,0,0],[1.0,1.0,1.0,1.0,0,0],[1.0,1.0,1.0,1.0,0,0],[1.0,1.0,1.0,1.0,0,0],[1.0,1.0,1.0,1.0,0,0],[1.0,1.0,1.0,1.0,0,0],[1.0,1.0,1.0,1.0,0,0]],"target":[1.0,1.0,1.0,1.0,0.0,0.0],"scales":[0.01,0.001,0.0001,1e-05,1e-06],"final":{"self_distillation":[[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,0.0],[1.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0]],"peira":[[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0]]}};
+const NS = 'http://www.w3.org/2000/svg';
+const RUST = '#3d5a73', ACCENT = '#c42b10', FAINT = '#b9b9b9';
+const el = (tag, attrs = {}, parent, text) => {
+ const node = document.createElementNS(NS, tag);
+ for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+ if (text !== undefined) node.textContent = text;
+ if (parent) parent.append(node);
+ return node;
+};
+const mix = (hex, a) => '#' + [1, 3, 5].map(i => Math.round(255 - a * (255 - parseInt(hex.slice(i, i + 2), 16))).toString(16).padStart(2, '0')).join('');
+const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶' };
+const pow10 = e => '10' + String(e).replace(/./g, c => SUP[c]);
+const reachThreshold = .9;
+const nTarget = DATA.target.filter(v => v > 0).length;
+
+// Plot geometry
+const PLOT = { y0: 92, y1: 290 };
+const logMin = Math.log10(DATA.step[0]), logMax = Math.log10(DATA.step[DATA.step.length - 1]);
+const panels = [
+ { key: 'sd', label: 'Self-distillation', col: RUST, px: 24, verdict: 'Stays collapsed' },
+ { key: 'peira', label: 'PEIRA', col: ACCENT, px: 504, verdict: `Recovers all ${nTarget}` },
+];
+const root = document.querySelector('#panels');
+for (const p of panels) {
+ const g = el('g', {}, root);
+ p.x0 = p.px + 50; p.x1 = p.px + 432;
+ const X = s => p.x0 + (Math.log10(s) - logMin) / (logMax - logMin) * (p.x1 - p.x0);
+ const Y = v => PLOT.y1 - Math.max(-.02, Math.min(1.08, v)) / 1.08 * (PLOT.y1 - PLOT.y0);
+ p.X = X; p.Y = Y;
+ el('text', { x: p.px, y: 36, class: `title ${p.key === 'sd' ? 'rust' : 'acc'}` }, g, p.label);
+ el('text', { x: p.x0 - 44, y: 72, class: 'tick' }, g, 'Spectral ratio (learned / target)');
+ for (const v of [0, .5, 1]) {
+  el('line', { x1: p.x0, x2: p.x1, y1: Y(v), y2: Y(v), class: 'grid' }, g);
+  el('text', { x: p.x0 - 9, y: Y(v) + 5, class: 'tick', 'text-anchor': 'end' }, g, String(v));
+ }
+ for (let e = Math.ceil(logMin); e <= Math.floor(logMax); e++) {
+  el('line', { x1: X(10 ** e), x2: X(10 ** e), y1: PLOT.y1, y2: PLOT.y1 + 5, class: 'axis' }, g);
+  el('text', { x: X(10 ** e), y: PLOT.y1 + 24, class: 'tick', 'text-anchor': 'middle' }, g, pow10(e));
+ }
+ el('path', { d: `M${p.x0} ${PLOT.y0 - 4}V${PLOT.y1}H${p.x1}`, class: 'axis' }, g);
+ el('text', { x: (p.x0 + p.x1) / 2, y: PLOT.y1 + 50, class: 'tick', 'text-anchor': 'middle' }, g, 'training step (log scale)');
+ p.lines = [];
+ for (let i = DATA.target.length - 1; i >= 0; i--) {
+  const isTarget = DATA.target[i] > 0;
+  const colour = isTarget ? mix(p.col, 1 - .16 * i) : FAINT;
+  p.lines[i] = el('path', { class: 'curve', stroke: colour, 'stroke-width': isTarget ? 3.2 : 2 }, g);
+ }
+ p.heads = DATA.target.map((tv, i) => tv > 0 ? el('circle', { r: 5, fill: mix(p.col, 1 - .16 * i), stroke: 'white', 'stroke-width': 1.5 }, g) : null);
+ if (p.key === 'sd') p.note = el('text', { x: (p.x0 + p.x1) / 2, y: PLOT.y1 - 22, class: 'tick', 'text-anchor': 'middle', opacity: 0 }, g, 'All 6 lines overlap at 0');
+ p.count = el('text', { x: p.x0 - 44, y: 372, class: 'count' }, g);
+ p.pill = el('g', { class: 'pill', opacity: 0 }, g);
+ const w = p.key === 'sd' ? 150 : 160;
+ el('rect', { x: p.x1 - w, y: 14, width: w, height: 30, rx: 15, fill: p.col }, p.pill);
+ el('text', { x: p.x1 - w / 2, y: 34, 'text-anchor': 'middle' }, p.pill, p.verdict);
+}
+
+// Summary table across init scales (final spectral ratios of the 4 target directions)
+const summary = document.querySelector('#summary');
+const colX = i => 330 + i * 132;
+el('text', { x: 24, y: 432, class: 'count' }, summary, 'Target directions recovered after 400,000 updates');
+const head = el('text', { x: 24, y: 466, class: 'tick' }, summary);
+el('tspan', {}, head, 'init scale ');
+el('tspan', { class: 'math' }, head, 'ρ');
+el('tspan', { 'font-size': 11, dy: 4 }, head, '0');
+el('rect', { x: colX(4) - 58, y: 446, width: 116, height: 104, rx: 8, fill: '#fcefe9' }, summary);
+DATA.scales.forEach((s, i) => el('text', { x: colX(i), y: 466, class: 'tick', 'text-anchor': 'middle' }, summary, pow10(Math.round(Math.log10(s)))));
+[['self_distillation', 'Self-distillation', RUST, 500], ['peira', 'PEIRA', ACCENT, 538]].forEach(([key, label, col, y]) => {
+ el('text', { x: 24, y, class: key === 'peira' ? 'acc' : 'rust', 'font-weight': 600 }, summary, label);
+ DATA.final[key].forEach((ratios, i) => {
+  const reached = ratios.filter(v => v > reachThreshold).length;
+  for (let j = 0; j < nTarget; j++) {
+   el('rect', { x: colX(i) - 46 + j * 15, y: y - 13, width: 11, height: 14, rx: 2, fill: ratios[j] > reachThreshold ? col : 'white', stroke: ratios[j] > reachThreshold ? col : '#c4c4c4' }, summary);
+  }
+  el('text', { x: colX(i) + 30, y, 'text-anchor': 'middle', 'font-weight': 600 }, summary, `${reached}/${nTarget}`);
+ });
+});
+
+function drawCurves(p, frac) {
+ const series = DATA[p.key], n = series.length, m = Math.max(0, Math.min(1, frac)) * (n - 1);
+ const k = Math.floor(m), a = m - k;
+ for (let i = 0; i < DATA.target.length; i++) {
+  let d = '';
+  for (let j = 0; j <= k; j++) d += `${j ? 'L' : 'M'}${p.X(DATA.step[j]).toFixed(1)} ${p.Y(series[j][i]).toFixed(1)}`;
+  if (k < n - 1 && a > 0) {
+   const x = p.X(DATA.step[k]) + a * (p.X(DATA.step[k + 1]) - p.X(DATA.step[k]));
+   const y = p.Y(series[k][i] + a * (series[k + 1][i] - series[k][i]));
+   d += `L${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  if (k === 0 && a === 0) d += 'h0.01';
+  p.lines[i].setAttribute('d', d);
+  const head = p.heads[i];
+  if (head) {
+   const tail = d.match(/([\d.]+) ([\d.]+)(h0\.01)?$/);
+   head.setAttribute('cx', tail[1]); head.setAttribute('cy', tail[2]);
+   head.setAttribute('opacity', frac >= 1 ? 0 : 1);
+  }
+ }
+ const row = series[Math.round(m)];
+ const reached = DATA.target.reduce((sum, t, i) => sum + (t > 0 && row[i] > reachThreshold ? 1 : 0), 0);
+ p.count.textContent = `Target directions reached: ${reached} of ${nTarget}`;
+ p.pill.setAttribute('opacity', frac >= 1 ? 1 : 0);
+ if (p.note) p.note.setAttribute('opacity', frac >= 1 ? 1 : 0);
+}
+
+const stages = [
+ ['Tiny initialization', 'Toy experiment of the paper: both methods start from a tiny initialization (ρ₀ = 10⁻⁶), so every direction starts near 0. The analytical target retains four canonical directions.'],
+ ['Self-distillation', 'In the paper\'s toy experiment, self-distillation from a tiny initialization stays collapsed: none of the four target directions grows.'],
+ ['PEIRA', 'For PEIRA, collapse is unstable. Training escapes it and recovers the target directions one after another, while the non-target directions stay at 0.'],
+ ['Across init scales', 'Across initialization scales, PEIRA recovers all four target directions every time. Self-distillation recovers 4, 4, 3, 1 and 0 as the scale shrinks from 10⁻² to 10⁻⁶.'],
+];
+const stageDurations = [3, 4, 5, 4];
+const drawWindows = [null, [.3, 3.4], [.3, 4.4], null];
+const stageStarts = stageDurations.map((_, i) => stageDurations.slice(0, i).reduce((s, x) => s + x, 0));
+const duration = stageDurations.reduce((s, x) => s + x, 0);
+const card = document.querySelector('#animation');
+const timeline = document.querySelector('#timeline');
+timeline.max = duration;
+const toggle = document.querySelector('#toggle');
+const steps = [...document.querySelectorAll('.step')];
+const groups = [...document.querySelectorAll('[data-phase]')];
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+const ease = t => { t = Math.max(0, Math.min(1, t)); return t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2; };
+const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+let frameVisible = window.parent === window;
+const POSTER = stageStarts[stages.length - 1] + stageDurations[stages.length - 1] - .01;
+let playing = frameVisible && !motion.matches, elapsed = playing ? 0 : POSTER, previousTime = null, currentStage = -1;
+
+function progress(stage, stageElapsed, index) {
+ if (stage < index) return 0;
+ if (stage > index || motion.matches) return 1;
+ const [a, b] = drawWindows[index];
+ return ease((stageElapsed - a) / (b - a));
+}
+function render() {
+ const next = stageStarts.findIndex(start => start > elapsed);
+ const stage = next === -1 ? stages.length - 1 : next - 1;
+ const stageElapsed = elapsed - stageStarts[stage];
+ drawCurves(panels[0], progress(stage, stageElapsed, 1));
+ drawCurves(panels[1], progress(stage, stageElapsed, 2));
+ for (const group of groups) {
+  const first = Number(group.dataset.phase);
+  group.classList.toggle('active', first === stage);
+  group.classList.toggle('done', first < stage);
+ }
+ if (stage !== currentStage) {
+  currentStage = stage;
+  for (const button of steps) {
+   if (Number(button.dataset.step) === stage) button.setAttribute('aria-current', 'step');
+   else button.removeAttribute('aria-current');
+  }
+  document.querySelector('#step-description').textContent = stages[stage][1];
+ }
+ timeline.value = elapsed;
+ timeline.setAttribute('aria-valuetext', `${Math.floor(elapsed)} seconds: ${stages[stage][0]}`);
+ document.querySelector('#time').textContent = `${clock(elapsed)} / ${clock(duration)}`;
+}
+function setPlaying(value) {
+ playing = value;
+ previousTime = null;
+ card.classList.toggle('paused', !playing);
+ toggle.textContent = playing ? 'Pause' : 'Play';
+ toggle.setAttribute('aria-label', playing ? 'Pause animation' : 'Play animation');
+}
+window.addEventListener('message', event => {
+ if (window.parent === window || event.source !== window.parent || event.origin !== location.origin) return;
+ if (event.data?.type !== 'peira-animation-visibility' || typeof event.data.visible !== 'boolean') return;
+ if (frameVisible === event.data.visible) return;
+ frameVisible = event.data.visible;
+ elapsed = frameVisible && !motion.matches ? 0 : POSTER;
+ setPlaying(frameVisible && !motion.matches);
+ render();
+});
+toggle.addEventListener('click', () => setPlaying(!playing));
+document.querySelector('#replay').addEventListener('click', () => { elapsed = 0; setPlaying(!motion.matches); render(); });
+for (const button of steps) button.addEventListener('click', () => {
+ const s = Number(button.dataset.step);
+ elapsed = stageStarts[s] + stageDurations[s] - .01;
+ setPlaying(false);
+ render();
+});
+timeline.addEventListener('input', () => { elapsed = Number(timeline.value); setPlaying(false); render(); });
+motion.addEventListener('change', event => { if (event.matches) setPlaying(false); render(); });
+document.addEventListener('visibilitychange', () => { previousTime = null; });
+function tick(now) {
+ if (playing && frameVisible && !document.hidden) {
+  if (previousTime !== null) elapsed = (elapsed + Math.min((now - previousTime) / 1000, .1)) % duration;
+  previousTime = now;
+  render();
+ }
+ requestAnimationFrame(tick);
+}
+setPlaying(playing);
+render();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

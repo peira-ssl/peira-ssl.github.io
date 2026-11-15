@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inter-view ridge regressor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inria+Sans:ital,wght@0,300;0,400;0,700;1,400&family=Inria+Serif:wght@400;700&display=swap">
+<script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embedded');</script>
+<style>
+:root { color-scheme: light; --ink:#1d1d1b; --muted:#5e5955; --accent:#c42b10; --soft:#fcefe9; --border:#e7e2dc; --rust:#3d5a73; }
+* { box-sizing:border-box; }
+body { margin:0; background:white; color:var(--ink); font:15px/1.55 "Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+main { max-width:1160px; padding:44px 24px; margin:auto; }
+.eyebrow { margin:0 0 6px; color:#8a8a8a; font-size:11px; font-weight:650; letter-spacing:.14em; text-transform:uppercase; }
+h1 { margin:0; font:700 32px/1.2 "Inria Serif",Georgia,"Times New Roman",serif; letter-spacing:-.02em; }
+.intro { margin:10px 0 25px; color:var(--muted); }
+.card { background:white; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.steps { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--border); }
+button { font:inherit; cursor:pointer; }
+.step { padding:15px 14px; border:0; border-right:1px solid var(--border); background:white; color:#7a7a7a; text-align:left; font-size:12px; transition:background .2s; }
+.step:last-child { border-right:0; }
+.step span { display:block; font-size:10px; letter-spacing:.08em; margin-bottom:3px; }
+.step[aria-current="step"] { background:var(--soft); color:var(--ink); box-shadow:inset 0 -3px var(--accent); }
+.step:hover { background:#fdf6f2; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.diagram-scroll { overflow-x:auto; padding:4px 14px 0; }
+svg { display:block; width:100%; height:auto; }
+svg text { font-family:"Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:var(--ink); }
+svg .math, svg .math text { font-family:"STIX Two Text","STIXGeneral","Cambria Math","Times New Roman",serif; font-style:italic; font-weight:400; font-size:28px; }
+svg .math text { fill:inherit; white-space:pre; }
+svg .math .math-script { font-size:17px; }
+svg .math .math-upright { font-style:normal; }
+svg .math.big, svg .math.big text { font-size:36px; }
+svg .math.big .math-script { font-size:20px; }
+svg .ink { fill:var(--ink); }
+svg .acc { fill:var(--accent); }
+svg .rust { fill:var(--rust); }
+svg .mut { fill:var(--muted); }
+svg .small { font-size:17px; fill:var(--muted); }
+svg .label { font-size:19px; font-weight:600; }
+svg .foot { font-size:15px; fill:#8a8a8a; }
+.wire { fill:none; stroke:#9a9a9a; stroke-width:1.6; marker-end:url(#arrow); }
+.wire.w-acc { stroke:var(--accent); marker-end:url(#arrow-acc); }
+.wire.w-rust { stroke:var(--rust); marker-end:url(#arrow-rust); }
+.wire.plain { marker-end:none; }
+.enc { fill:white; stroke-width:1.5; }
+.enc.u { stroke:var(--accent); }
+.enc.v { stroke:var(--rust); }
+.stat { fill:white; stroke:#ecc9bd; stroke-width:1.3; }
+.stat.noise { fill:#f6f6f4; stroke:#d6d6d0; }
+.ridge { fill:var(--soft); stroke:var(--accent); stroke-width:2; }
+.objective { fill:white; stroke:var(--accent); stroke-width:2; }
+[data-phase] { opacity:.12; transition:opacity .6s ease; }
+[data-phase].done { opacity:.85; }
+[data-phase].active { opacity:1; }
+.active .wire { stroke-dasharray:6 4; animation:flow .8s linear infinite; }
+@keyframes flow { to { stroke-dashoffset:-20; } }
+.active .ridge, .active .objective { animation:breathe 2.2s ease-in-out infinite; }
+@keyframes breathe { 50% { stroke-width:3.2; } }
+.paused .active .wire, .paused .active .ridge, .paused .active .objective { animation-play-state:paused; }
+.description { margin:0 24px; border-top:1px solid var(--border); padding:16px 0; min-height:80px; }
+.description p { color:var(--muted); margin:0; font-size:14px; max-width:720px; }
+.controls { display:flex; align-items:center; gap:12px; padding:15px 24px; background:#fbf9f6; border-top:1px solid var(--border); }
+.control { padding:7px 14px; border:1px solid #d8d8d8; border-radius:5px; background:white; color:var(--ink); font-size:12px; min-width:68px; }
+.control:hover { background:var(--soft); }
+input[type=range] { flex:1; min-width:50px; accent-color:var(--accent); cursor:pointer; }
+.time { white-space:nowrap; font-size:11px; color:#7a7a7a; font-variant-numeric:tabular-nums; }
+@media(max-width:650px) {
+ main { padding:24px 12px; } h1 { font-size:26px; } .intro { font-size:13px; }
+ .step { padding:12px 8px; font-size:11px; } .step span { font-size:9px; }
+ .description { margin:0 16px; min-height:116px; }
+ .description p { font-size:13px; }
+ .controls { padding:12px; gap:8px; } .control { padding:7px 10px; min-width:54px; }
+ .time { display:none; } .diagram-scroll { padding:0 6px; }
+}
+@media(max-width:520px) {
+ .step { font-size:0; padding:10px 8px; text-align:center; } .step span { font-size:11px; margin:0; }
+ svg .small { font-size:18px; } svg .foot { font-size:17px; } svg .label { font-size:20px; }
+}
+@media(prefers-reduced-motion:reduce) { * { transition:none !important; } .active .wire, .active .ridge, .active .objective { animation:none; } }
+.embedded body { background:transparent; }
+.embedded main { max-width:none; padding:0; }
+.embedded .eyebrow, .embedded h1, .embedded .intro { display:none; }
+</style>
+</head>
+<body>
+<main>
+<p class="eyebrow">PEIRA · Method</p>
+<h1>Align views through an optimal ridge regressor</h1>
+<p class="intro">Predict one view from the other with a linear regressor, solved in closed form, and maximize its trace.</p>
+<div class="card" id="animation">
+<nav class="steps" aria-label="Animation steps">
+<button class="step" data-step="0" aria-current="step"><span>01</span>Encode two views</button>
+<button class="step" data-step="1"><span>02</span>Feature statistics</button>
+<button class="step" data-step="2"><span>03</span>Ridge regressor</button>
+<button class="step" data-step="3"><span>04</span>Maximize the trace</button>
+</nav>
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="PEIRA objective diagram; scroll horizontally on small screens">
+<svg viewBox="0 0 1120 630" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">The PEIRA objective</title>
+<desc id="diagram-desc">Two views x and y of one image go through encoders U and V. The features define two statistics: Sigma, the covariance across views (shared signal), and N, the covariance inside each view (within-view variability). The optimal ridge regressor between views is P = Sigma (N + lambda I) inverse, a signal-to-noise ratio between views. PEIRA maximizes the trace of P, with a norm penalty on U and V: it minimizes minus one half Tr(P) plus lambda over two times the sum of the squared norms of U and V.</desc>
+<defs>
+ <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="none" stroke="#9a9a9a"/></marker>
+ <marker id="arrow-acc" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="none" stroke="#c42b10"/></marker>
+ <marker id="arrow-rust" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="none" stroke="#3d5a73"/></marker>
+</defs>
+<text x="20" y="40" class="small" text-anchor="start">Simplified diagram, for fixed encoders</text>
+
+<g data-phase="0">
+ <text x="40" y="181" class="math big acc" text-anchor="middle" data-math="x">x</text>
+ <path class="wire w-acc" d="M60 170H96"/>
+ <rect class="enc u" x="102" y="134" width="80" height="72" rx="9"/>
+ <text x="142" y="182" class="math big acc" text-anchor="middle" data-math="U">U</text>
+ <path class="wire w-acc" d="M184 170H214"/>
+ <text x="260" y="180" class="math acc" text-anchor="middle" data-math="U(x)">U(x)</text>
+ <text x="60" y="262" class="small" text-anchor="middle">two views of</text>
+ <text x="60" y="284" class="small" text-anchor="middle">one image</text>
+</g>
+<g data-phase="0" data-delay="0.6">
+ <text x="40" y="381" class="math big rust" text-anchor="middle" data-math="y">y</text>
+ <path class="wire w-rust" d="M60 370H96"/>
+ <rect class="enc v" x="102" y="334" width="80" height="72" rx="9"/>
+ <text x="142" y="382" class="math big rust" text-anchor="middle" data-math="V">V</text>
+ <path class="wire w-rust" d="M184 370H214"/>
+ <text x="260" y="380" class="math rust" text-anchor="middle" data-math="V(y)">V(y)</text>
+ <text x="260" y="438" class="small" text-anchor="middle">features in ℝᵏ</text>
+</g>
+
+<g data-phase="1">
+ <path class="wire" d="M304 162C326 162 330 162 352 164"/>
+ <path class="wire" d="M304 360C330 336 330 210 352 186"/>
+ <rect class="stat" x="358" y="116" width="332" height="104" rx="8"/>
+ <text x="376" y="178" class="math acc" text-anchor="start" data-math="Σ_{U,V}">Σ_{U,V}</text>
+ <text x="456" y="160" class="label" text-anchor="start">Shared signal</text>
+ <text x="456" y="186" class="small" text-anchor="start">covariance across views</text>
+</g>
+<g data-phase="1" data-delay="1.2">
+ <path class="wire" d="M304 180C330 204 330 330 352 354"/>
+ <path class="wire" d="M304 378C326 378 330 378 352 376"/>
+ <rect class="stat noise" x="358" y="316" width="332" height="104" rx="8"/>
+ <text x="376" y="378" class="math mut" text-anchor="start" data-math="N_{U,V}">N_{U,V}</text>
+ <text x="456" y="360" class="label" text-anchor="start">Within-view variability</text>
+ <text x="456" y="386" class="small" text-anchor="start">covariance inside each view</text>
+</g>
+
+<g data-phase="2">
+ <path class="wire w-acc" d="M692 168C716 168 710 236 726 240"/>
+ <path class="wire w-acc" d="M692 368C716 368 710 300 726 296"/>
+ <rect class="ridge" x="732" y="180" width="370" height="176" rx="10"/>
+ <text x="917" y="218" class="label" text-anchor="middle">Optimal ridge regressor</text>
+ <text x="917" y="282" class="math acc" text-anchor="middle" data-math="P_{U,V} = Σ_{U,V}(N_{U,V} + λI)^{−1}">P_{U,V} = Σ_{U,V}(N_{U,V} + λI)^{−1}</text>
+ <text x="917" y="330" class="small" text-anchor="middle">signal-to-noise ratio between views</text>
+</g>
+
+<g data-phase="3">
+ <path class="wire w-acc plain" d="M917 356V454"/>
+ <rect class="objective" x="358" y="456" width="744" height="134" rx="10"/>
+ <text x="380" y="490" class="label" text-anchor="start">PEIRA maximizes the trace of P</text>
+ <text x="1082" y="490" class="small" text-anchor="end">with a norm penalty on U, V</text>
+ <text x="380" y="536" class="math acc" text-anchor="start" data-math="ℰ_{PEIRA}(U,V) = −½ Tr(P_{U,V}) + ½λ(‖U‖_{2}^{2} + ‖V‖_{2}^{2})">ℰ_{PEIRA}(U,V) = −½ Tr(P_{U,V}) + ½λ(‖U‖_{2}^{2} + ‖V‖_{2}^{2})</text>
+ <text x="380" y="572" class="small" text-anchor="start">Tr(P) sums the contributions of all eigen-modes of the regressor.</text>
+</g>
+<text x="20" y="620" class="foot" text-anchor="start">The paper also gives a stochastic training algorithm with EMA statistics and an auxiliary loss.</text>
+</svg>
+</div>
+<div class="description" aria-live="off">
+<p id="step-description">Two views x and y of one image go through encoders U and V.</p>
+</div>
+<div class="controls">
+<button class="control" id="toggle" aria-label="Pause animation">Pause</button>
+<button class="control" id="replay">Replay</button>
+<input id="timeline" type="range" min="0" max="16" step="0.05" value="0" aria-label="Animation timeline, in seconds">
+<span class="time" id="time">0:00 / 0:16</span>
+</div>
+</div>
+<noscript><p>Enable JavaScript to play the animation. The diagram’s full description is available to screen readers.</p></noscript>
+</main>
+<script>
+const measureCtx = document.createElement('canvas').getContext('2d');
+function textWidth(node) {
+ const w = node.getComputedTextLength();
+ if (w > 0) return w;
+ let total = 0;
+ for (const span of node.querySelectorAll('tspan')) {
+  const cs = getComputedStyle(span);
+  measureCtx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  total += measureCtx.measureText(span.textContent).width;
+ }
+ return total;
+}
+function typesetDiagramMath() {
+ const ns = 'http://www.w3.org/2000/svg';
+ for (const source of document.querySelectorAll('svg text[data-math]')) {
+  const group = document.createElementNS(ns, 'g');
+  group.setAttribute('class', source.getAttribute('class'));
+  group.setAttribute('role', 'img');
+  group.setAttribute('aria-label', source.textContent);
+  source.after(group);
+  const addText = (text, x, y, script = false) => {
+   const node = document.createElementNS(ns, 'text');
+   for (const fragment of text.split(/(Tr|PEIRA)/)) {
+    const span = document.createElementNS(ns, 'tspan');
+    span.textContent = fragment;
+    if (fragment === 'Tr' || fragment === 'PEIRA') span.setAttribute('class', 'math-upright');
+    node.append(span);
+   }
+   node.setAttribute('x', x);
+   node.setAttribute('y', y);
+   if (script) node.setAttribute('class', 'math-script');
+   group.append(node);
+   return textWidth(node);
+  };
+  let cursor = 0;
+  for (const token of source.dataset.math.matchAll(/([^_^]+)((?:[_^]\{[^}]+\})*)/g)) {
+   cursor += addText(token[1], cursor, 0);
+   let scriptWidth = 0;
+   for (const script of token[2].matchAll(/([_^])\{([^}]+)\}/g)) {
+    scriptWidth = Math.max(scriptWidth, addText(script[2], cursor + 1, script[1] === '^' ? -11 : 6, true));
+   }
+   if (scriptWidth) cursor += scriptWidth + 2;
+  }
+  const anchor = source.getAttribute('text-anchor');
+  const x = Number(source.getAttribute('x')) - (anchor === 'middle' ? cursor / 2 : anchor === 'end' ? cursor : 0);
+  group.setAttribute('transform', `translate(${x},${source.getAttribute('y')})`);
+  source.remove();
+ }
+}
+Promise.all([document.fonts.load("400 15px \"Inria Sans\""),document.fonts.load("700 15px \"Inria Sans\"")]).catch(function(){}).then(function(){return document.fonts.ready}).then(typesetDiagramMath);
+const stages = [
+ ["Encode two views", "Two views x and y of one image go through encoders U and V, which map them to k\u2011dimensional features."],
+ ["Feature statistics", "Two covariance statistics of the features: Σ measures the signal shared across views, and N the variability within each view."],
+ ["Ridge regressor", "For fixed encoders, the ridge regressor that predicts each encoded view from the other has a closed form, a matrix-valued signal-to-noise ratio: P\u00a0=\u00a0Σ(N\u00a0+\u00a0λI)⁻¹ (all three depend on U and V, hence the subscript U,V in the diagram)."],
+ ["Maximize the trace", "PEIRA maximizes the trace of P, with a quadratic penalty that controls feature scale. It is one explicit objective, minimized jointly over both encoders."]
+];
+const stageDurations = [3.5, 4, 4, 4.5];
+const stageStarts = stageDurations.map((_, i) => stageDurations.slice(0, i).reduce((a, b) => a + b, 0));
+const duration = stageDurations.reduce((a, b) => a + b, 0);
+const card = document.querySelector('#animation');
+const timeline = document.querySelector('#timeline');
+timeline.max = duration;
+const toggle = document.querySelector('#toggle');
+const steps = [...document.querySelectorAll('[data-step]')];
+const groups = [...document.querySelectorAll('[data-phase]')];
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+const stageEnd = stage => Math.max(0, ...groups.filter(g => Number(g.dataset.phase) === stage).map(g => Number(g.dataset.delay || 0)));
+const POSTER = stageStarts[stages.length - 1] + stageEnd(stages.length - 1) + 0.05;
+let frameVisible = window.parent === window;
+let playing = frameVisible && !motion.matches, elapsed = playing ? 0 : POSTER, previousTime = null, currentStage = -1;
+const fmt = s => `0:${String(Math.floor(s)).padStart(2, '0')}`;
+function render() {
+ const next = stageStarts.findIndex(start => start > elapsed);
+ const stage = next === -1 ? stages.length - 1 : next - 1;
+ const stageElapsed = motion.matches ? Infinity : elapsed - stageStarts[stage];
+ for (const group of groups) {
+  const first = Number(group.dataset.phase);
+  const active = first === stage && stageElapsed >= Number(group.dataset.delay || 0);
+  group.classList.toggle('active', active);
+  group.classList.toggle('done', !active && first < stage);
+ }
+ if (stage !== currentStage) {
+  currentStage = stage;
+  for (const button of steps) {
+   if (Number(button.dataset.step) === stage) button.setAttribute('aria-current', 'step');
+   else button.removeAttribute('aria-current');
+  }
+  document.querySelector('#step-description').textContent = stages[stage][1];
+ }
+ timeline.value = elapsed;
+ timeline.setAttribute('aria-valuetext', `${Math.floor(elapsed)} seconds: ${stages[stage][0]}`);
+ document.querySelector('#time').textContent = `${fmt(elapsed)} / ${fmt(duration)}`;
+}
+function setPlaying(value) {
+ playing = value;
+ previousTime = null;
+ card.classList.toggle('paused', !playing);
+ toggle.textContent = playing ? 'Pause' : 'Play';
+ toggle.setAttribute('aria-label', playing ? 'Pause animation' : 'Play animation');
+}
+window.addEventListener('message', event => {
+ if (window.parent === window || event.source !== window.parent) return;
+ if (event.data?.type !== 'peira-animation-visibility' || typeof event.data.visible !== 'boolean') return;
+ if (frameVisible === event.data.visible) return;
+ frameVisible = event.data.visible;
+ elapsed = frameVisible && !motion.matches ? 0 : POSTER;
+ setPlaying(frameVisible && !motion.matches);
+ render();
+});
+toggle.addEventListener('click', () => setPlaying(!playing));
+document.querySelector('#replay').addEventListener('click', () => { elapsed = 0; setPlaying(!motion.matches); render(); });
+for (const button of steps) button.addEventListener('click', () => {
+ const stage = Number(button.dataset.step);
+ elapsed = stageStarts[stage] + stageEnd(stage) + 0.05;
+ setPlaying(false);
+ render();
+});
+timeline.addEventListener('input', () => { elapsed = Number(timeline.value); setPlaying(false); render(); });
+motion.addEventListener('change', event => { if (event.matches) setPlaying(false); render(); });
+document.addEventListener('visibilitychange', () => { previousTime = null; });
+function tick(now) {
+ if (playing && frameVisible && !document.hidden) {
+  if (previousTime !== null) elapsed = (elapsed + Math.min((now - previousTime) / 1000, .1)) % duration;
+  previousTime = now;
+  render();
+ }
+ requestAnimationFrame(tick);
+}
+setPlaying(playing);
+render();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

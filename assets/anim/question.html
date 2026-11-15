@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What does self-distillation optimize?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inria+Sans:ital,wght@0,300;0,400;0,700;1,400&family=Inria+Serif:wght@400;700&display=swap">
+<script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embedded');</script>
+<style>
+:root { color-scheme: light; --text:#1d1d1b; --muted:#5e5955; --accent:#c42b10; --accent-soft:#fcefe9; --border:#e7e2dc; --warm:#3d5a73; --warm-soft:#e9eef2; }
+* { box-sizing:border-box; }
+body { margin:0; background:#fbf9f6; color:var(--text); font:15px/1.55 "Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+main { max-width:1160px; padding:44px 24px; margin:auto; }
+.eyebrow { margin:0 0 6px; color:var(--muted); font-size:11px; font-weight:650; letter-spacing:.14em; text-transform:uppercase; }
+h1 { margin:0; font:600 32px/1.2 "Inria Serif",Georgia,serif; letter-spacing:-.025em; }
+.intro { margin:10px 0 25px; color:var(--muted); }
+.card { background:white; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.steps { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--border); }
+button { font:inherit; cursor:pointer; }
+.step { padding:15px 14px; border:0; border-right:1px solid var(--border); background:white; color:var(--muted); text-align:left; font-size:12px; transition:background .2s; }
+.step:last-child { border-right:0; }
+.step span { display:block; font-size:10px; letter-spacing:.08em; margin-bottom:3px; }
+.step[aria-current="step"] { background:var(--accent-soft); color:var(--text); box-shadow:inset 0 -3px var(--accent); }
+.step:hover { background:#fdf6f2; }
+:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
+.diagram-scroll { overflow-x:auto; padding:8px 14px 0; }
+svg { display:block; width:100%; height:auto; }
+svg text { font-family:"Inria Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:var(--text); }
+svg .math { font-family:"STIX Two Text","STIXGeneral","Cambria Math","Times New Roman",serif; font-style:italic; font-size:32px; }
+svg .box-label { font-size:19px; font-weight:600; }
+svg .out { font-size:19px; font-weight:600; }
+svg .small { font-size:15px; fill:var(--muted); }
+svg .bullet { font-size:18px; font-weight:500; }
+.wire { fill:none; stroke:var(--text); stroke-width:1.8; }
+.box-s { fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.6; }
+.box-t { fill:var(--warm-soft); stroke:var(--warm); stroke-width:1.6; }
+.description { margin:0 24px; border-top:1px solid var(--border); padding:16px 0; min-height:80px; }
+.description p { color:var(--muted); margin:0; font-size:14px; max-width:690px; }
+.controls { display:flex; align-items:center; gap:12px; padding:15px 24px; background:#fbf9f6; border-top:1px solid var(--border); }
+.control { padding:7px 14px; border:1px solid #ddd7d0; border-radius:5px; background:white; color:var(--text); font-size:12px; min-width:68px; }
+.control:hover { background:var(--accent-soft); }
+input[type=range] { flex:1; min-width:50px; accent-color:var(--accent); cursor:pointer; }
+.time { white-space:nowrap; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.legend { display:flex; gap:20px; flex-wrap:wrap; margin-top:18px; font-size:12px; color:var(--muted); }
+.legend i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+@media(max-width:650px) {
+ main { padding:24px 12px; } h1 { font-size:27px; } .intro { font-size:13px; }
+ .step { padding:12px 8px; font-size:11px; } .step span { font-size:9px; }
+ .description { margin:0 16px; min-height:116px; }
+ .description p { font-size:13px; }
+ .controls { padding:12px; gap:8px; } .control { padding:7px 10px; min-width:54px; }
+ .time { display:none; } .diagram-scroll { padding:0 6px; }
+}
+@media(max-width:520px) {
+ .step { font-size:0; padding:10px 8px; text-align:center; } .step span { font-size:11px; margin:0; }
+ svg .small { font-size:17px; } svg .bullet { font-size:19px; } svg .box-label, svg .out { font-size:21px; }
+}
+@media(prefers-reduced-motion:reduce) { * { transition:none !important; } }
+.embedded body { background:transparent; }
+.embedded main { max-width:none; padding:0; }
+.embedded .eyebrow,.embedded h1,.embedded .intro,.embedded .legend { display:none; }
+</style>
+</head>
+<body>
+<main>
+<p class="eyebrow">PEIRA · From self-distillation to PEIRA</p>
+<h1>What does self-distillation optimize?</h1>
+<p class="intro">Self-distillation methods train a student to predict a teacher. They work well in practice, but they do not minimize a well-defined objective, and their representations can collapse.</p>
+<div class="card" id="animation">
+<nav class="steps" aria-label="Animation steps">
+<button class="step" data-step="0" aria-current="step"><span>01</span>Student and teacher</button>
+<button class="step" data-step="1"><span>02</span>Works in practice</button>
+<button class="step" data-step="2"><span>03</span>No defined objective</button>
+<button class="step" data-step="3"><span>04</span>Collapse</button>
+</nav>
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="Self-distillation diagram; scroll horizontally on small screens">
+<svg viewBox="0 0 1100 400" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">Self-distillation: a student predicts a teacher</title>
+<desc id="diagram-desc">Left: view x goes through the student encoder and a predictor to give a prediction; view y goes through the teacher encoder, updated by EMA or stop-gradient, to give a target; the prediction is matched to the target. Right: three statements. They work well in practice. But they minimize no well-defined objective. And representations can collapse. Below, a schematic illustration in which a cloud of points contracts to a single point, labelled: collapse maps every input to one point.</desc>
+<defs>
+ <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#1d1d1b" stroke-width="1.3"/></marker>
+ <clipPath id="panel-clip"><rect x="642" y="228" width="436" height="155" rx="14"/></clipPath>
+</defs>
+
+<g data-t="0.3">
+ <text x="38" y="121" class="math" text-anchor="middle">x</text>
+ <path class="wire" d="M56 110H92" marker-end="url(#arrow)"/>
+ <rect x="96" y="80" width="130" height="60" rx="9" class="box-s"/>
+ <text x="161" y="117" class="box-label" text-anchor="middle">Student</text>
+ <path class="wire" d="M230 110H266" marker-end="url(#arrow)"/>
+ <rect x="270" y="80" width="130" height="60" rx="9" class="box-s"/>
+ <text x="335" y="117" class="box-label" text-anchor="middle">Predictor</text>
+ <path class="wire" d="M404 110H440" marker-end="url(#arrow)"/>
+ <text x="448" y="117" class="out" style="fill:var(--accent)">Prediction</text>
+</g>
+<g data-t="1.0">
+ <text x="38" y="268" class="math" text-anchor="middle">y</text>
+ <path class="wire" d="M56 260H92" marker-end="url(#arrow)"/>
+ <rect x="96" y="230" width="130" height="60" rx="9" class="box-t"/>
+ <text x="161" y="267" class="box-label" text-anchor="middle">Teacher</text>
+ <path class="wire" d="M230 260H440" marker-end="url(#arrow)"/>
+ <text x="448" y="267" class="out" style="fill:var(--warm)">Target</text>
+</g>
+<g data-t="1.6">
+ <text x="335" y="294" class="small" text-anchor="middle" style="fill:var(--warm); font-weight:500">EMA or stop-gradient</text>
+</g>
+<g data-t="2.3">
+ <path data-draw class="wire" d="M500 132V238" style="stroke:var(--muted); stroke-dasharray:6 6"/>
+ <text x="514" y="190" class="small" style="font-weight:500">match</text>
+</g>
+
+<g data-t="4.7">
+ <circle cx="657" cy="64" r="6" style="fill:var(--accent)"/>
+ <text x="676" y="70" class="bullet">They work well in practice.</text>
+</g>
+<g data-t="7.7">
+ <circle cx="657" cy="110" r="6" style="fill:var(--warm)"/>
+ <text x="676" y="116" class="bullet">But they minimize no well-defined objective.</text>
+</g>
+<g data-t="11.7">
+ <circle cx="657" cy="156" r="6" style="fill:var(--warm)"/>
+ <text x="676" y="162" class="bullet">And representations can collapse.</text>
+</g>
+<g data-t="12.1" data-rise="0">
+ <rect x="642" y="196" width="436" height="187" rx="14" fill="white" stroke="#d9d9d9" stroke-width="1.5"/>
+ <text x="660" y="220" class="small">Schematic: collapse maps every input to one point</text>
+ <g id="cloud" clip-path="url(#panel-clip)"></g>
+</g>
+</svg>
+</div>
+<div class="description" aria-live="off">
+<p id="step-description"></p>
+</div>
+<div class="controls">
+<button class="control" id="toggle" aria-label="Pause animation">Pause</button>
+<button class="control" id="replay">Replay</button>
+<input id="timeline" type="range" min="0" max="17" step="0.05" value="0" aria-label="Animation timeline, in seconds">
+<span class="time" id="time">0:00 / 0:17</span>
+</div>
+</div>
+<div class="legend" aria-label="Diagram legend"><span><i style="background:#c42b10"></i>Student branch</span><span><i style="background:#3d5a73"></i>Teacher branch</span></div>
+<noscript><p>Enable JavaScript to play the animation. The diagram’s full description is available to screen readers.</p></noscript>
+</main>
+<script>
+const stages = [
+ ["Student and teacher", "Self-distillation methods such as BYOL, SimSiam and DINO train a student to predict a teacher. The teacher branch is updated by EMA or held under stop-gradient."],
+ ["Works in practice", "They work well in practice."],
+ ["No defined objective", "But they do not minimize a well-defined objective, so what they learn is poorly understood."],
+ ["Collapse", "And representations can collapse onto a single point (schematic illustration). In the self-distillation dynamics the paper analyzes, the totally collapsed solution is a stable equilibrium."]
+];
+const stageDurations = [4.5, 3, 4, 5.5];
+const COLLAPSE_START = 12.6, COLLAPSE_LEN = 2.2, FADE = 0.5;
+const stageStarts = stageDurations.map((_, i) => stageDurations.slice(0, i).reduce((s, d) => s + d, 0));
+const duration = stageDurations.reduce((s, d) => s + d, 0);
+const card = document.querySelector('#animation');
+const timeline = document.querySelector('#timeline');
+timeline.max = duration;
+const toggle = document.querySelector('#toggle');
+const steps = [...document.querySelectorAll('[data-step]')];
+const items = [...document.querySelectorAll('[data-t]')];
+const draws = [...document.querySelectorAll('[data-draw]')].map(p => [p, 0]);
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+const clamp = v => Math.min(1, Math.max(0, v));
+const ease = v => 1 - Math.pow(1 - clamp(v), 3);
+const smooth = v => { v = clamp(v); return v * v * (3 - 2 * v); };
+
+// Fixed pseudo-random cloud (seeded) for the schematic collapse.
+const cloud = document.querySelector('#cloud');
+let seed = 3;
+const rand = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+const gauss = () => Math.sqrt(-2 * Math.log(1 - rand())) * Math.cos(2 * Math.PI * rand());
+const CX = 860, CY = 305;
+const points = Array.from({length: 60}, (_, i) => {
+ const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+ c.setAttribute('r', 5);
+ c.setAttribute('fill', i % 2 ? '#c42b10' : '#3d5a73');
+ c.setAttribute('fill-opacity', .85);
+ cloud.append(c);
+ const lim = (v, m) => Math.max(-m, Math.min(m, v));
+ return [c, lim(gauss() * 75, 180), lim(gauss() * 24, 58)];
+});
+
+let frameVisible = window.parent === window;
+const POSTER = duration - .01;
+let playing = frameVisible && !motion.matches, elapsed = playing ? 0 : POSTER, previousTime = null, currentStage = -1;
+function stageAt(t) {
+ const next = stageStarts.findIndex(start => start > t);
+ return next === -1 ? stages.length - 1 : next - 1;
+}
+function render() {
+ const stage = stageAt(elapsed);
+ const settled = motion.matches || !frameVisible;
+ const t = settled ? stageStarts[stage] + stageDurations[stage] - 0.01 : elapsed;
+ for (const el of items) {
+  const p = ease((t - Number(el.dataset.t)) / FADE);
+  const rise = el.dataset.rise === undefined ? 10 : Number(el.dataset.rise);
+  el.style.opacity = p;
+  el.setAttribute('transform', `translate(0 ${((1 - p) * rise).toFixed(2)})`);
+ }
+ for (const [path, len] of draws) {
+  const p = ease((t - Number(path.closest('[data-t]').dataset.t)) / .8);
+  path.setAttribute('d', `M500 132V${(132 + 106 * p).toFixed(2)}`);
+ }
+ const shrink = 1 - .97 * smooth((t - COLLAPSE_START) / COLLAPSE_LEN);
+ for (const [c, dx, dy] of points) {
+  c.setAttribute('cx', (CX + dx * shrink).toFixed(2));
+  c.setAttribute('cy', (CY + dy * shrink).toFixed(2));
+ }
+ if (stage !== currentStage) {
+  currentStage = stage;
+  for (const button of steps) {
+   if (Number(button.dataset.step) === stage) button.setAttribute('aria-current', 'step');
+   else button.removeAttribute('aria-current');
+  }
+  document.querySelector('#step-description').textContent = stages[stage][1];
+ }
+ timeline.value = elapsed;
+ timeline.setAttribute('aria-valuetext', `${Math.floor(elapsed)} seconds: ${stages[stage][0]}`);
+ document.querySelector('#time').textContent = `0:${String(Math.floor(elapsed)).padStart(2, '0')} / 0:${duration}`;
+}
+function setPlaying(value) {
+ playing = value;
+ previousTime = null;
+ card.classList.toggle('paused', !playing);
+ toggle.textContent = playing ? 'Pause' : 'Play';
+ toggle.setAttribute('aria-label', playing ? 'Pause animation' : 'Play animation');
+}
+window.addEventListener('message', event => {
+ if (window.parent === window || event.source !== window.parent || event.origin !== location.origin) return;
+ if (event.data?.type !== 'peira-animation-visibility' || typeof event.data.visible !== 'boolean') return;
+ if (frameVisible === event.data.visible) return;
+ frameVisible = event.data.visible;
+ elapsed = frameVisible && !motion.matches ? 0 : POSTER;
+ setPlaying(frameVisible && !motion.matches);
+ render();
+});
+toggle.addEventListener('click', () => setPlaying(!playing));
+document.querySelector('#replay').addEventListener('click', () => { elapsed = 0; setPlaying(!motion.matches); render(); });
+for (const button of steps) button.addEventListener('click', () => {
+ frameVisible = true;
+ elapsed = stageStarts[Number(button.dataset.step)];
+ setPlaying(!motion.matches);
+ render();
+});
+timeline.addEventListener('input', () => { frameVisible = true; elapsed = Number(timeline.value); setPlaying(false); render(); });
+motion.addEventListener('change', event => { if (event.matches) setPlaying(false); render(); });
+document.addEventListener('visibilitychange', () => { previousTime = null; });
+function tick(now) {
+ if (playing && frameVisible && !document.hidden) {
+  if (previousTime !== null) elapsed = (elapsed + Math.min((now - previousTime) / 1000, .1)) % duration;
+  previousTime = now;
+  render();
+ }
+ requestAnimationFrame(tick);
+}
+setPlaying(playing);
+render();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
